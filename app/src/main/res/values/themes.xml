@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- CAMBIADO: El padre ahora es un tema que REALMENTE no tiene barra de acción -->
+    <style name="Theme.SucuStore" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Aquí puedes añadir otros atributos de estilo si quieres -->
+    </style>
+
+</resources>
