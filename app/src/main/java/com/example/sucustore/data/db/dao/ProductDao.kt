@@ -11,15 +11,13 @@ import com.example.sucustore.data.db.entity.Product
 @Dao
 interface ProductDao {
 
-    // ➕ Agregar producto
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(product: Product): Long
 
-    // 🔁 Obtener todos los productos
+    // Esta es la función que tu proyecto reconoce, la dejamos así.
     @Query("SELECT * FROM products ORDER BY id DESC")
     suspend fun getAll(): List<Product>
 
-    // ❌ Eliminar producto
     @Delete
     suspend fun delete(product: Product)
 

@@ -58,7 +58,9 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.6.0")
 
     // ¡¡LA DEPENDENCIA QUE FALTABA PARA LOS ICONOS!!
-    implementation("androidx.compose.material:material-icons-extended-android:1.6.7")
+    // AÑADE ESTA EN SU LUGAR
+    implementation("androidx.compose.material:material-icons-extended:1.6.7")
+
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")

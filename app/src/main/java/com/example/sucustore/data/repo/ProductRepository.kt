@@ -3,14 +3,15 @@ package com.example.sucustore.data.repo
 import com.example.sucustore.data.db.dao.ProductDao
 import com.example.sucustore.data.db.entity.Product
 
-// ¡CORREGIDO! Ahora recibe el ProductDao directamente.
 class ProductRepository(private val productDao: ProductDao) {
 
     suspend fun insertProduct(product: Product) {
         productDao.insert(product)
     }
 
-    suspend fun getAllProducts(): List<Product> {
+    // --- CORRECCIÓN ---
+    // Ahora esta función se llama 'getAll' para que coincida con el Dao.
+    suspend fun getAll(): List<Product> {
         return productDao.getAll()
     }
 
