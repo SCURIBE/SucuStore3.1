@@ -147,6 +147,7 @@ fun AppNavHost(
             ProductScreen(
                 factory = factory,
                 authViewModel = authViewModel,
+                navController = navController, // Añadido el NavController
                 onProductClick = { product ->
                     navController.navigate("product_detail/${product.id}")
                 },
