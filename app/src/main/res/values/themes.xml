@@ -4,6 +4,7 @@
     <!-- CAMBIADO: El padre ahora es un tema que REALMENTE no tiene barra de acción -->
     <style name="Theme.SucuStore" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Aquí puedes añadir otros atributos de estilo si quieres -->
+        <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
     </style>
 
 </resources>

@@ -13,23 +13,22 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel // ---> ¡ASEGÚRATE DE TENER ESTA IMPORTACIÓN!
 import com.example.sucustore.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    authViewModel: AuthViewModel,
-    onRegisterComplete: () -> Unit, // Renombrado para más claridad
+    // Inyectamos el ViewModel automáticamente.
+    authViewModel: AuthViewModel = viewModel(),
+    onRegisterComplete: () -> Unit,
     onLoginClick: () -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    val error by authViewModel.error.collectAsState()
+    // 1. LA UI YA NO TIENE SUS PROPIOS ESTADOS. AHORA OBSERVA LOS DEL VIEWMODEL.
+    val formState by authViewModel.formState.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
 
-    // ¡¡OBSERVADOR INTELIGENTE!!
-    // Cuando currentUser deje de ser nulo (gracias al auto-login), se llamará a la navegación.
+    // Este observador se queda igual. Navega cuando el registro es exitoso.
     LaunchedEffect(currentUser) {
         if (currentUser != null) {
             onRegisterComplete()
@@ -51,21 +50,57 @@ fun RegisterScreen(
         )
         Spacer(modifier = Modifier.height(48.dp))
 
-        OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp))
+        // --- CAMPO NOMBRE ---
+        OutlinedTextField(
+            value = formState.name, // El valor viene del ViewModel
+            onValueChange = { authViewModel.onNameChange(it) }, // La UI notifica al ViewModel del cambio
+            label = { Text("Nombre Completo") },
+            isError = formState.nameError != null, // Se pone rojo si el ViewModel dice que hay un error
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp)
+        )
+        // Muestra el mensaje de error que viene del ViewModel
+        formState.nameError?.let { errorMsg ->
+            Text(text = errorMsg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
         Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(value = email, onValueChange = { email = it }, label = { Text("Correo Electrónico") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), shape = RoundedCornerShape(8.dp))
-        Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Contraseña") }, modifier = Modifier.fillMaxWidth(), visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), shape = RoundedCornerShape(8.dp))
 
-        error?.let {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(it, color = MaterialTheme.colorScheme.error)
+        // --- CAMPO CORREO ---
+        OutlinedTextField(
+            value = formState.email,
+            onValueChange = { authViewModel.onEmailChange(it) },
+            label = { Text("Correo Electrónico") },
+            isError = formState.emailError != null,
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            shape = RoundedCornerShape(8.dp)
+        )
+        formState.emailError?.let { errorMsg ->
+            Text(text = errorMsg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // --- CAMPO CONTRASEÑA ---
+        OutlinedTextField(
+            value = formState.password,
+            onValueChange = { authViewModel.onPasswordChange(it) },
+            label = { Text("Contraseña") },
+            isError = formState.passwordError != null,
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            shape = RoundedCornerShape(8.dp)
+        )
+        formState.passwordError?.let { errorMsg ->
+            Text(text = errorMsg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // --- BOTÓN DE REGISTRO ---
         Button(
-            onClick = { authViewModel.register(name, email, password) },
+            // 2. AHORA LA UI SÓLO LLAMA A `register()` SIN PASARLE NADA.
+            onClick = { authViewModel.register() },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             shape = RoundedCornerShape(8.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
