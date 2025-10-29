@@ -71,6 +71,9 @@ dependencies {
     // DataStore
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // Lottie
+    implementation("com.airbnb.android:lottie-compose:6.4.0")
+
     // Test
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

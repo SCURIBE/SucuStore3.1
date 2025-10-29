@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import com.example.sucustore.data.db.entity.Product
 import com.example.sucustore.viewmodel.AuthViewModel
 import com.example.sucustore.viewmodel.ProductViewModel
@@ -28,6 +30,7 @@ import com.example.sucustore.viewmodel.SucuStoreViewModelFactory
 fun ProductScreen(
     factory: SucuStoreViewModelFactory,
     authViewModel: AuthViewModel, // Recibimos el AuthViewModel directamente
+    navController: NavController, // Añadimos el NavController
     onProductClick: (Product) -> Unit,
     onAddNewProduct: () -> Unit,
     onBack: () -> Unit
@@ -48,7 +51,7 @@ fun ProductScreen(
                 title = { 
                     Text(
                         // ¡¡TÍTULO DINÁMICO!!
-                        text = if (isAdmin) "Gestionar Productos" else currentUser?.name?.let { "Bienvenido, $it" } ?: "Productos", 
+                        text = if (isAdmin) "Gestionar Productos" else currentUser?.name?.let { "Bienvenido(a), $it" } ?: "Productos", 
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -58,6 +61,14 @@ fun ProductScreen(
                         Icon(
                             imageVector = if (isAdmin) Icons.AutoMirrored.Filled.ArrowBack else Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = if (isAdmin) "Volver" else "Cerrar Sesión"
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { navController.navigate("cart") }) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = "Carrito"
                         )
                     }
                 }
