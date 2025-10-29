@@ -33,7 +33,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun CartScreen(
     factory: SucuStoreViewModelFactory,
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onCheckoutComplete: () -> Unit
 ) {
     val cartViewModel: CartViewModel = viewModel(factory = factory)
     val authViewModel: AuthViewModel = viewModel(factory = factory)
@@ -76,7 +77,7 @@ fun CartScreen(
             if (showAnimation) {
                 PaymentAnimation(onAnimationFinished = {
                     showAnimation = false
-                    onBack() // Go back after the animation
+                    onCheckoutComplete() // Navega a la pantalla de productos
                 })
             } else {
                 Column(

@@ -136,7 +136,10 @@ fun AppNavHost(
         composable("cart") {
             CartScreen(
                 factory = factory,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onCheckoutComplete = {
+                    navController.navigate("products") { popUpTo(0) }
+                }
             )
         }
 
