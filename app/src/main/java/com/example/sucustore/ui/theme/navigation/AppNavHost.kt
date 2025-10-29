@@ -19,7 +19,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.sucustore.ui.theme.product.ProductDetailScreen
 import com.example.sucustore.ui.theme.product.ProductScreen
-import com.example.sucustore.ui.theme.screens.* 
+import com.example.sucustore.ui.theme.screens.*
 import com.example.sucustore.ui.theme.screens.auth.LoginScreen
 import com.example.sucustore.ui.theme.screens.auth.RegisterScreen
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
@@ -36,12 +36,41 @@ fun AppNavHost(
 ) {
     val factory = SucuStoreViewModelFactory(LocalContext.current.applicationContext as Application)
 
+    // El startDestination ahora es "splash".
     NavHost(navController = navController, startDestination = "splash") {
 
+        // --- ESTE ES EL BLOQUE MODIFICADO ---
         composable("splash") {
-            SplashScreen(navController = navController)
-        }
+            // Recogemos el estado del usuario para poder tomar la decisión de navegación.
+            val currentUser by authViewModel.currentUser.collectAsState()
 
+            // Llamamos a la SplashScreen y le pasamos la lógica a ejecutar cuando termine.
+            SplashScreen(
+                onSplashFinished = {
+                    // Decide a dónde ir después de que termine el splash.
+                    val destination = if (currentUser != null) {
+                        // Si hay un usuario, decidimos la ruta según su rol.
+                        when (currentUser?.role?.name) {
+                            "ADMIN" -> "admin_dashboard"
+                            "CLIENT" -> "products"
+                            else -> "login" // Caso por defecto si el rol es desconocido.
+                        }
+                    } else {
+                        // Si no hay usuario, va a la pantalla de login.
+                        "login"
+                    }
+
+                    // Navega al destino y limpia la pantalla de splash del historial
+                    // para que el usuario no pueda volver a ella.
+                    navController.navigate(destination) {
+                        popUpTo("splash") { inclusive = true }
+                    }
+                }
+            )
+        }
+        // --- FIN DEL BLOQUE MODIFICADO ---
+
+        // El resto de tus rutas se quedan exactamente igual.
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -89,10 +118,10 @@ fun AppNavHost(
         composable("admin_dashboard") {
             AdminDashboardScreen(
                 navController = navController,
-                onLogout = { 
+                onLogout = {
                     authViewModel.logout()
                     navController.navigate("login") { popUpTo(0) }
-                } 
+                }
             )
         }
 
@@ -117,17 +146,16 @@ fun AppNavHost(
 
             ProductScreen(
                 factory = factory,
-                authViewModel = authViewModel, // Pasamos el ViewModel para que la pantalla sea consciente del rol
+                authViewModel = authViewModel,
                 onProductClick = { product ->
-                    navController.navigate("product_detail/${product.id}") 
+                    navController.navigate("product_detail/${product.id}")
                 },
                 onAddNewProduct = { navController.navigate("add_product") },
-                // ¡¡LÓGICA DUAL IMPLEMENTADA!!
                 onBack = {
                     if (isAdmin) {
-                        navController.popBackStack() // El Admin vuelve al panel
+                        navController.popBackStack()
                     } else {
-                        authViewModel.logout() // El Cliente cierra sesión
+                        authViewModel.logout()
                         navController.navigate("login") { popUpTo(0) }
                     }
                 }
