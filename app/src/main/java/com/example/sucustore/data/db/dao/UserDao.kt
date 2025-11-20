@@ -3,6 +3,7 @@ package com.example.sucustore.data.db.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.example.sucustore.data.db.entity.User
 
 @Dao
@@ -23,4 +24,8 @@ interface UserDao {
     // 📊 Contar todos los usuarios
     @Query("SELECT COUNT(*) FROM users")
     suspend fun count(): Int
+
+    // 🔥 NECESARIO PARA ACTUALIZAR CONTRASEÑA
+    @Update
+    suspend fun update(user: User)
 }

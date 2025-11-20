@@ -4,10 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -22,6 +19,8 @@ import com.example.sucustore.ui.theme.product.ProductScreen
 import com.example.sucustore.ui.theme.screens.*
 import com.example.sucustore.ui.theme.screens.auth.LoginScreen
 import com.example.sucustore.ui.theme.screens.auth.RegisterScreen
+import com.example.sucustore.ui.theme.screens.auth.RecoverPasswordScreen
+import com.example.sucustore.ui.theme.screens.auth.ResetPasswordScreen
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
 import com.example.sucustore.ui.theme.screens.home.HomeScreen
 import com.example.sucustore.ui.theme.screens.order.OrderScreen
@@ -36,45 +35,37 @@ fun AppNavHost(
 ) {
     val factory = SucuStoreViewModelFactory(LocalContext.current.applicationContext as Application)
 
-    // El startDestination ahora es "splash".
     NavHost(navController = navController, startDestination = "splash") {
 
-        // --- ESTE ES EL BLOQUE MODIFICADO ---
+        // -----------------------------------------------------------
+        // ⚡ SPLASH SCREEN
+        // -----------------------------------------------------------
         composable("splash") {
-            // Recogemos el estado del usuario para poder tomar la decisión de navegación.
             val currentUser by authViewModel.currentUser.collectAsState()
 
-            // Llamamos a la SplashScreen y le pasamos la lógica a ejecutar cuando termine.
             SplashScreen(
                 onSplashFinished = {
-                    // Decide a dónde ir después de que termine el splash.
-                    val destination = if (currentUser != null) {
-                        // Si hay un usuario, decidimos la ruta según su rol.
-                        when (currentUser?.role?.name) {
-                            "ADMIN" -> "admin_dashboard"
-                            "CLIENT" -> "products"
-                            else -> "login" // Caso por defecto si el rol es desconocido.
-                        }
-                    } else {
-                        // Si no hay usuario, va a la pantalla de login.
-                        "login"
+                    val destination = when (currentUser?.role?.name) {
+                        "ADMIN" -> "admin_dashboard"
+                        "CLIENT" -> "products"
+                        else -> "login"
                     }
 
-                    // Navega al destino y limpia la pantalla de splash del historial
-                    // para que el usuario no pueda volver a ella.
                     navController.navigate(destination) {
                         popUpTo("splash") { inclusive = true }
                     }
                 }
             )
         }
-        // --- FIN DEL BLOQUE MODIFICADO ---
 
-        // El resto de tus rutas se quedan exactamente igual.
+        // -----------------------------------------------------------
+        // ⚡ LOGIN
+        // -----------------------------------------------------------
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
                 onRegisterClick = { navController.navigate("register") },
+                onForgotPasswordClick = { navController.navigate("recover_password") },
                 onLoginSuccess = {
                     val user = authViewModel.currentUser.value
                     val route = when (user?.role?.name) {
@@ -82,11 +73,15 @@ fun AppNavHost(
                         "CLIENT" -> "products"
                         else -> "login"
                     }
+
                     navController.navigate("loading/$route") { popUpTo(0) }
                 }
             )
         }
 
+        // -----------------------------------------------------------
+        // ⚡ REGISTER
+        // -----------------------------------------------------------
         composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
@@ -98,11 +93,48 @@ fun AppNavHost(
                         "CLIENT" -> "products"
                         else -> "login"
                     }
+
                     navController.navigate("loading/$route") { popUpTo(0) }
                 }
             )
         }
 
+        // -----------------------------------------------------------
+        // ⚡ RESET PASSWORD — ENTER EMAIL
+        // -----------------------------------------------------------
+        composable("recover_password") {
+            RecoverPasswordScreen(
+                authViewModel = authViewModel,
+                onEmailVerified = { email ->
+                    navController.navigate("reset_password/$email")
+                },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // -----------------------------------------------------------
+        // ⚡ RESET PASSWORD — ENTER NEW PASSWORD
+        // -----------------------------------------------------------
+        composable(
+            route = "reset_password/{email}",
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+
+            ResetPasswordScreen(
+                authViewModel = authViewModel,
+                email = email,
+                onPasswordResetComplete = {
+                    navController.navigate("login") {
+                        popUpTo(0)
+                    }
+                }
+            )
+        }
+
+        // -----------------------------------------------------------
+        // ⚡ LOADING SCREEN
+        // -----------------------------------------------------------
         composable(
             route = "loading/{route}",
             arguments = listOf(navArgument("route") { type = NavType.StringType })
@@ -111,10 +143,16 @@ fun AppNavHost(
             LoadingScreen(navController = navController, route = finalRoute)
         }
 
+        // -----------------------------------------------------------
+        // ⚡ HOME
+        // -----------------------------------------------------------
         composable("home") {
             HomeScreen(navController = navController, authViewModel = authViewModel)
         }
 
+        // -----------------------------------------------------------
+        // ⚡ ADMIN DASHBOARD
+        // -----------------------------------------------------------
         composable("admin_dashboard") {
             AdminDashboardScreen(
                 navController = navController,
@@ -125,6 +163,9 @@ fun AppNavHost(
             )
         }
 
+        // -----------------------------------------------------------
+        // ⚡ ADD PRODUCT
+        // -----------------------------------------------------------
         composable("add_product") {
             ProductFormScreen(
                 productViewModel = viewModel(factory = factory),
@@ -133,6 +174,9 @@ fun AppNavHost(
             )
         }
 
+        // -----------------------------------------------------------
+        // ⚡ CART
+        // -----------------------------------------------------------
         composable("cart") {
             CartScreen(
                 factory = factory,
@@ -143,6 +187,9 @@ fun AppNavHost(
             )
         }
 
+        // -----------------------------------------------------------
+        // ⚡ PRODUCT LIST
+        // -----------------------------------------------------------
         composable("products") {
             val currentUser by authViewModel.currentUser.collectAsState()
             val isAdmin = currentUser?.role?.name == "ADMIN"
@@ -150,7 +197,7 @@ fun AppNavHost(
             ProductScreen(
                 factory = factory,
                 authViewModel = authViewModel,
-                navController = navController, // Añadido el NavController
+                navController = navController,
                 onProductClick = { product ->
                     navController.navigate("product_detail/${product.id}")
                 },
@@ -166,6 +213,9 @@ fun AppNavHost(
             )
         }
 
+        // -----------------------------------------------------------
+        // ⚡ ORDERS
+        // -----------------------------------------------------------
         composable("orders") {
             OrderScreen(
                 factory = factory,
@@ -173,6 +223,9 @@ fun AppNavHost(
             )
         }
 
+        // -----------------------------------------------------------
+        // ⚡ PRODUCT DETAIL
+        // -----------------------------------------------------------
         composable(
             route = "product_detail/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
@@ -180,9 +233,11 @@ fun AppNavHost(
             val productId = backStackEntry.arguments?.getInt("productId")
             if (productId != null) {
                 val productViewModel: ProductViewModel = viewModel(factory = factory)
+
                 LaunchedEffect(Unit) {
                     productViewModel.loadProducts()
                 }
+
                 val products by productViewModel.products.collectAsState()
                 val product = products.find { it.id == productId }
 
@@ -194,7 +249,10 @@ fun AppNavHost(
                         onGoToCart = { navController.navigate("cart") }
                     )
                 } else {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text("Producto no encontrado o cargando...")
                     }
                 }

@@ -6,7 +6,6 @@ import com.example.sucustore.data.db.entity.User
 import com.example.sucustore.data.db.entity.UserRole
 import com.example.sucustore.data.prefs.AppPreference
 import com.example.sucustore.data.repo.UserRepository
-// 1. AÑADIMOS LAS IMPORTACIONES NECESARIAS
 import com.example.sucustore.util.Validators
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,36 +13,39 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-// 2. AÑADIMOS ESTA "DATA CLASS" PARA EL ESTADO DEL FORMULARIO
+// --------------------------------------
+// ESTADO DEL FORMULARIO
+// --------------------------------------
 data class AuthFormState(
     val name: String = "",
     val email: String = "",
     val password: String = "",
+    val confirmPassword: String = "",
+
     val nameError: String? = null,
     val emailError: String? = null,
-    val passwordError: String? = null
+    val passwordError: String? = null,
+    val confirmPasswordError: String? = null
 )
 
-// 3. REEMPLAZAMOS LA CLASE ENTERA
+// --------------------------------------
+// VIEWMODEL COMPLETO
+// --------------------------------------
 class AuthViewModel(
     private val userRepository: UserRepository,
     private val appPreference: AppPreference
 ) : ViewModel() {
 
-    // --- Tu código original que se mantiene ---
     private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser = _currentUser.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null) // Lo mantenemos para el login
+    private val _error = MutableStateFlow<String?>(null)
     val error = _error.asStateFlow()
-    // --- Fin del código que se mantiene ---
 
-
-    // --- Código nuevo que añadimos ---
     private val _formState = MutableStateFlow(AuthFormState())
     val formState = _formState.asStateFlow()
 
-    init { // Tu `init` se queda igual
+    init {
         viewModelScope.launch {
             val userEmail = appPreference.getUserEmail().first()
             if (userEmail != null) {
@@ -52,20 +54,52 @@ class AuthViewModel(
         }
     }
 
-    // Funciones nuevas para que la UI actualice los datos del formulario
-    fun onNameChange(name: String) {
-        _formState.update { it.copy(name = name, nameError = null) }
+    // ------------------------------
+    // SET ERROR (para login y reset)
+    // ------------------------------
+    fun setError(msg: String) {
+        _error.value = msg
     }
+
+    fun clearError() {
+        _error.value = null
+    }
+
+    // ------------------------------
+    // ACTUALIZADORES UI → VM
+    // ------------------------------
+    fun onNameChange(name: String) {
+        _formState.update { it.copy(name = name.trimStart(), nameError = null) }
+    }
+
     fun onEmailChange(email: String) {
         _formState.update { it.copy(email = email, emailError = null) }
     }
+
     fun onPasswordChange(password: String) {
         _formState.update { it.copy(password = password, passwordError = null) }
     }
 
-    // Tu función de `login` se queda igual
+    fun onConfirmPasswordChange(value: String) {
+        _formState.update { it.copy(confirmPassword = value, confirmPasswordError = null) }
+    }
+
+    // ------------------------------
+    // LOGIN
+    // ------------------------------
     fun login(email: String, password: String) {
         viewModelScope.launch {
+
+            if (!email.contains("@")) {
+                _error.value = "Correo inválido"
+                return@launch
+            }
+
+            if (password.isBlank()) {
+                _error.value = "Debe ingresar su contraseña"
+                return@launch
+            }
+
             val user = userRepository.getUserByEmail(email)
             if (user != null && user.password == password) {
                 _currentUser.value = user
@@ -77,47 +111,145 @@ class AuthViewModel(
         }
     }
 
-    // TU FUNCIÓN DE `register` ANTIGUA SE REEMPLAZA POR ESTA NUEVA VERSIÓN
+    // ------------------------------
+    // VALIDACIONES AVANZADAS + REGISTRO
+    // ------------------------------
     fun register() {
-        val currentState = _formState.value
+        val state = _formState.value
 
-        val nameError = Validators.nonEmpty("Nombre", currentState.name)?.message
-        val emailError = Validators.email(currentState.email)?.message
-        val passwordError = Validators.password(currentState.password)?.message
+        // VALIDACIÓN NOMBRE
+        var nameError = Validators.nonEmpty("Nombre", state.name)?.message
 
-        val hasError = listOfNotNull(nameError, emailError, passwordError).any()
+        if (nameError == null) {
+            val name = state.name
 
-        if (hasError) {
+            if (!Regex("^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$").matches(name)) {
+                nameError = "El nombre no puede contener números ni símbolos"
+            }
+
+            if (name.trim().split(" ").size < 2) {
+                nameError = "Debe ingresar nombre y apellido"
+            }
+
+            if (name.length < 5) {
+                nameError = "El nombre es demasiado corto"
+            }
+
+            if ("  " in name) {
+                nameError = "No puede contener espacios dobles"
+            }
+
+            if (name.length > 40) {
+                nameError = "El nombre es demasiado largo"
+            }
+
+            if (Regex("(.)\\1{3,}").containsMatchIn(name)) {
+                nameError = "El nombre contiene caracteres repetidos en exceso"
+            }
+        }
+
+        // VALIDACIONES EMAIL / PASSWORD
+        val emailError = Validators.email(state.email)?.message
+        val passwordError = Validators.password(state.password)?.message
+
+        val confirmPasswordError =
+            if (state.confirmPassword.isBlank())
+                "Debe repetir la contraseña"
+            else if (state.confirmPassword != state.password)
+                "Las contraseñas no coinciden"
+            else null
+
+        if (listOfNotNull(nameError, emailError, passwordError, confirmPasswordError).isNotEmpty()) {
             _formState.update {
                 it.copy(
                     nameError = nameError,
                     emailError = emailError,
-                    passwordError = passwordError
+                    passwordError = passwordError,
+                    confirmPasswordError = confirmPasswordError
                 )
             }
             return
         }
 
+        // CAPITALIZAR NOMBRE
+        val formattedName = state.name
+            .lowercase()
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+
+        // REGISTRO FINAL
         viewModelScope.launch {
-            if (userRepository.getUserByEmail(currentState.email) != null) {
+            if (userRepository.getUserByEmail(state.email) != null) {
                 _formState.update { it.copy(emailError = "El correo ya está registrado") }
                 return@launch
             }
 
             val newUser = User(
-                name = currentState.name,
-                email = currentState.email,
-                password = currentState.password,
+                name = formattedName,
+                email = state.email,
+                password = state.password,
                 role = UserRole.CLIENT
             )
+
             userRepository.registerUser(newUser)
             _currentUser.value = newUser
             appPreference.saveLoginState(true, newUser.email)
-            _formState.value = AuthFormState() // Limpia el formulario
+
+            _formState.value = AuthFormState()
         }
     }
 
-    // Tu función de `logout` se queda igual
+    // -------------------------------------------------
+    // 🔥 RECUPERAR CONTRASEÑA – OPCIÓN B IMPLEMENTADA
+    // -------------------------------------------------
+
+    // 1) Verificar si el correo existe en la BD
+    fun verifyEmailForReset(email: String, callback: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            val user = userRepository.getUserByEmail(email)
+
+            if (user == null) {
+                _error.value = "El correo no está registrado"
+                callback(false)
+            } else {
+                _error.value = null
+                callback(true)
+            }
+        }
+    }
+
+    // 2) Resetear contraseña
+    fun resetPassword(email: String, pass: String, confirm: String, callback: (Boolean) -> Unit) {
+
+        if (pass.length < 6) {
+            _error.value = "La contraseña debe tener al menos 6 caracteres"
+            callback(false)
+            return
+        }
+
+        if (pass != confirm) {
+            _error.value = "Las contraseñas no coinciden"
+            callback(false)
+            return
+        }
+
+        viewModelScope.launch {
+            val user = userRepository.getUserByEmail(email)
+
+            if (user != null) {
+                val updatedUser = user.copy(password = pass)
+                userRepository.updateUser(updatedUser)
+                _error.value = null
+                callback(true)
+            } else {
+                _error.value = "Error inesperado"
+                callback(false)
+            }
+        }
+    }
+
+    // LOGOUT
     fun logout() {
         viewModelScope.launch {
             _currentUser.value = null
