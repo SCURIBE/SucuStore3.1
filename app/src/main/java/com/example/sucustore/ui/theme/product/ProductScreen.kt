@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
@@ -88,13 +89,21 @@ fun ProductScreen(
                     }
                 },
                 actions = {
+                    // Botón perfil (para admin y cliente)
+                    IconButton(onClick = { navController.navigate("profile") }) {
+                        Icon(Icons.Default.Person, contentDescription = "Perfil")
+                    }
+
+                    // Botón carrito
+                    IconButton(onClick = { navController.navigate("cart") }) {
+                        Icon(Icons.Default.ShoppingCart, contentDescription = null)
+                    }
+
+                    // Solo admin puede agregar productos
                     if (isAdmin) {
                         IconButton(onClick = onAddNewProduct) {
                             Icon(Icons.Default.Add, contentDescription = null)
                         }
-                    }
-                    IconButton(onClick = { navController.navigate("cart") }) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null)
                     }
                 }
             )

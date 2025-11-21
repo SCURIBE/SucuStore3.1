@@ -133,7 +133,6 @@ fun AppNavHost(
             )
         }
 
-        // ----------- FIX DEL ERROR AQUÍ -----------------
         // EDIT PRODUCT
         composable(
             route = "edit_product/{productId}",
@@ -163,7 +162,6 @@ fun AppNavHost(
                 )
             }
         }
-        // -------------------------------------------------
 
         // CART
         composable("cart") {
@@ -225,6 +223,14 @@ fun AppNavHost(
                     Text("Producto no encontrado.")
                 }
             }
+        }
+
+        // 👉 NUEVA RUTA PERFIL
+        composable("profile") {
+            UserProfileScreen(
+                authViewModel = authViewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

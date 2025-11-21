@@ -172,11 +172,7 @@ class AuthViewModel(
         }
 
         // CAPITALIZAR NOMBRE
-        val formattedName = state.name
-            .lowercase()
-            .split(" ")
-            .filter { it.isNotBlank() }
-            .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
+        val formattedName = formatName(state.name)
 
         // REGISTRO FINAL
         viewModelScope.launch {
@@ -197,6 +193,66 @@ class AuthViewModel(
             appPreference.saveLoginState(true, newUser.email)
 
             _formState.value = AuthFormState()
+        }
+    }
+
+    // -------------------------------------------------
+    // 🔥 ACTUALIZAR PERFIL (NOMBRE + CONTRASEÑA OPCIONAL)
+    // -------------------------------------------------
+    /**
+     * @param newName nombre actualizado
+     * @param newPassword nueva contraseña (opcional, puede ser null o vacío)
+     * @param confirmPassword confirmación de la nueva contraseña
+     */
+    fun updateProfile(
+        newName: String,
+        newPassword: String?,
+        confirmPassword: String?,
+        callback: (success: Boolean, message: String?) -> Unit
+    ) {
+        val user = currentUser.value
+        if (user == null) {
+            callback(false, "Usuario no autenticado")
+            return
+        }
+
+        // Validar nombre
+        val trimmedName = newName.trim()
+        if (trimmedName.isBlank()) {
+            callback(false, "El nombre no puede estar vacío")
+            return
+        }
+
+        // Reutilizamos la misma lógica de formato de nombre
+        val formattedName = formatName(trimmedName)
+
+        // Validar contraseña solo si el usuario escribió algo
+        var finalPassword: String? = null
+        val pass = newPassword?.trim().orEmpty()
+        val confirm = confirmPassword?.trim().orEmpty()
+
+        if (pass.isNotEmpty() || confirm.isNotEmpty()) {
+            if (pass.length < 6) {
+                callback(false, "La nueva contraseña debe tener al menos 6 caracteres")
+                return
+            }
+            if (pass != confirm) {
+                callback(false, "Las contraseñas no coinciden")
+                return
+            }
+            finalPassword = pass
+        }
+
+        viewModelScope.launch {
+            val updatedUser = if (finalPassword != null) {
+                user.copy(name = formattedName, password = finalPassword)
+            } else {
+                user.copy(name = formattedName)
+            }
+
+            userRepository.updateUser(updatedUser)
+            _currentUser.value = updatedUser
+            callback(true, "Perfil actualizado correctamente")
         }
     }
 
@@ -255,5 +311,14 @@ class AuthViewModel(
             _currentUser.value = null
             appPreference.saveLoginState(false, "")
         }
+    }
+
+    // Helper para capitalizar nombres
+    private fun formatName(raw: String): String {
+        return raw
+            .lowercase()
+            .split(" ")
+            .filter { it.isNotBlank() }
+            .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } }
     }
 }
