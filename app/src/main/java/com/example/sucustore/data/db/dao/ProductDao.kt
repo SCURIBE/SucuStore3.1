@@ -14,9 +14,11 @@ interface ProductDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(product: Product): Long
 
-    // Esta es la función que tu proyecto reconoce, la dejamos así.
     @Query("SELECT * FROM products ORDER BY id DESC")
     suspend fun getAll(): List<Product>
+
+    @Query("SELECT * FROM products WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Int): Product?
 
     @Delete
     suspend fun delete(product: Product)

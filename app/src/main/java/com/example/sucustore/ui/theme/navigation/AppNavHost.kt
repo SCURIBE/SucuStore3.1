@@ -17,10 +17,7 @@ import androidx.navigation.navArgument
 import com.example.sucustore.ui.theme.product.ProductDetailScreen
 import com.example.sucustore.ui.theme.product.ProductScreen
 import com.example.sucustore.ui.theme.screens.*
-import com.example.sucustore.ui.theme.screens.auth.LoginScreen
-import com.example.sucustore.ui.theme.screens.auth.RegisterScreen
-import com.example.sucustore.ui.theme.screens.auth.RecoverPasswordScreen
-import com.example.sucustore.ui.theme.screens.auth.ResetPasswordScreen
+import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
 import com.example.sucustore.ui.theme.screens.home.HomeScreen
 import com.example.sucustore.ui.theme.screens.order.OrderScreen
@@ -38,28 +35,25 @@ fun AppNavHost(
     NavHost(navController = navController, startDestination = "splash") {
 
         // -----------------------------------------------------------
-        // ⚡ SPLASH SCREEN
+        // SPLASH
         // -----------------------------------------------------------
         composable("splash") {
             val currentUser by authViewModel.currentUser.collectAsState()
 
-            SplashScreen(
-                onSplashFinished = {
-                    val destination = when (currentUser?.role?.name) {
-                        "ADMIN" -> "admin_dashboard"
-                        "CLIENT" -> "products"
-                        else -> "login"
-                    }
-
-                    navController.navigate(destination) {
-                        popUpTo("splash") { inclusive = true }
-                    }
+            SplashScreen(onSplashFinished = {
+                val destination = when (currentUser?.role?.name) {
+                    "ADMIN" -> "admin_dashboard"
+                    "CLIENT" -> "products"
+                    else -> "login"
                 }
-            )
+                navController.navigate(destination) {
+                    popUpTo("splash") { inclusive = true }
+                }
+            })
         }
 
         // -----------------------------------------------------------
-        // ⚡ LOGIN
+        // LOGIN
         // -----------------------------------------------------------
         composable("login") {
             LoginScreen(
@@ -73,14 +67,13 @@ fun AppNavHost(
                         "CLIENT" -> "products"
                         else -> "login"
                     }
-
                     navController.navigate("loading/$route") { popUpTo(0) }
                 }
             )
         }
 
         // -----------------------------------------------------------
-        // ⚡ REGISTER
+        // REGISTER
         // -----------------------------------------------------------
         composable("register") {
             RegisterScreen(
@@ -88,11 +81,8 @@ fun AppNavHost(
                 onLoginClick = { navController.navigate("login") { popUpTo(0) } },
                 onRegisterComplete = {
                     val user = authViewModel.currentUser.value
-                    val route = when (user?.role?.name) {
-                        "ADMIN" -> "admin_dashboard"
-                        "CLIENT" -> "products"
-                        else -> "login"
-                    }
+                    val route =
+                        if (user?.role?.name == "ADMIN") "admin_dashboard" else "products"
 
                     navController.navigate("loading/$route") { popUpTo(0) }
                 }
@@ -100,58 +90,44 @@ fun AppNavHost(
         }
 
         // -----------------------------------------------------------
-        // ⚡ RESET PASSWORD — ENTER EMAIL
+        // RECOVER PASSWORD
         // -----------------------------------------------------------
         composable("recover_password") {
             RecoverPasswordScreen(
                 authViewModel = authViewModel,
-                onEmailVerified = { email ->
-                    navController.navigate("reset_password/$email")
-                },
+                onEmailVerified = { email -> navController.navigate("reset_password/$email") },
                 onBack = { navController.popBackStack() }
             )
         }
 
-        // -----------------------------------------------------------
-        // ⚡ RESET PASSWORD — ENTER NEW PASSWORD
-        // -----------------------------------------------------------
         composable(
-            route = "reset_password/{email}",
+            "reset_password/{email}",
             arguments = listOf(navArgument("email") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val email = backStackEntry.arguments?.getString("email") ?: ""
-
+        ) { entry ->
             ResetPasswordScreen(
                 authViewModel = authViewModel,
-                email = email,
+                email = entry.arguments?.getString("email") ?: "",
                 onPasswordResetComplete = {
-                    navController.navigate("login") {
-                        popUpTo(0)
-                    }
+                    navController.navigate("login") { popUpTo(0) }
                 }
             )
         }
 
         // -----------------------------------------------------------
-        // ⚡ LOADING SCREEN
+        // LOADING
         // -----------------------------------------------------------
         composable(
-            route = "loading/{route}",
+            "loading/{route}",
             arguments = listOf(navArgument("route") { type = NavType.StringType })
         ) {
-            val finalRoute = it.arguments?.getString("route") ?: "login"
-            LoadingScreen(navController = navController, route = finalRoute)
+            LoadingScreen(
+                navController = navController,
+                route = it.arguments?.getString("route")!!
+            )
         }
 
         // -----------------------------------------------------------
-        // ⚡ HOME
-        // -----------------------------------------------------------
-        composable("home") {
-            HomeScreen(navController = navController, authViewModel = authViewModel)
-        }
-
-        // -----------------------------------------------------------
-        // ⚡ ADMIN DASHBOARD
+        // ADMIN DASHBOARD
         // -----------------------------------------------------------
         composable("admin_dashboard") {
             AdminDashboardScreen(
@@ -164,7 +140,7 @@ fun AppNavHost(
         }
 
         // -----------------------------------------------------------
-        // ⚡ ADD PRODUCT
+        // CREATE PRODUCT
         // -----------------------------------------------------------
         composable("add_product") {
             ProductFormScreen(
@@ -175,7 +151,36 @@ fun AppNavHost(
         }
 
         // -----------------------------------------------------------
-        // ⚡ CART
+        // EDIT PRODUCT - YA FUNCIONA
+        // -----------------------------------------------------------
+        composable(
+            route = "edit_product/{productId}",
+            arguments = listOf(navArgument("productId") { type = NavType.IntType })
+        ) { entry ->
+
+            val productId = entry.arguments?.getInt("productId") ?: 0
+            val productViewModel: ProductViewModel = viewModel(factory = factory)
+
+            val product by produceState<com.example.sucustore.data.db.entity.Product?>(initialValue = null) {
+                value = productViewModel.repository.getById(productId)
+            }
+
+            if (product == null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Cargando producto...")
+                }
+            } else {
+                ProductFormScreen(
+                    existingProduct = product!!,
+                    productViewModel = productViewModel,
+                    onSave = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() }
+                )
+            }
+        }
+
+        // -----------------------------------------------------------
+        // CART
         // -----------------------------------------------------------
         composable("cart") {
             CartScreen(
@@ -188,7 +193,7 @@ fun AppNavHost(
         }
 
         // -----------------------------------------------------------
-        // ⚡ PRODUCT LIST
+        // PRODUCT LIST
         // -----------------------------------------------------------
         composable("products") {
             val currentUser by authViewModel.currentUser.collectAsState()
@@ -199,13 +204,13 @@ fun AppNavHost(
                 authViewModel = authViewModel,
                 navController = navController,
                 onProductClick = { product ->
-                    navController.navigate("product_detail/${product.id}")
+                    if (isAdmin) navController.navigate("edit_product/${product.id}")
+                    else navController.navigate("product_detail/${product.id}")
                 },
                 onAddNewProduct = { navController.navigate("add_product") },
                 onBack = {
-                    if (isAdmin) {
-                        navController.popBackStack()
-                    } else {
+                    if (isAdmin) navController.popBackStack()
+                    else {
                         authViewModel.logout()
                         navController.navigate("login") { popUpTo(0) }
                     }
@@ -214,47 +219,30 @@ fun AppNavHost(
         }
 
         // -----------------------------------------------------------
-        // ⚡ ORDERS
-        // -----------------------------------------------------------
-        composable("orders") {
-            OrderScreen(
-                factory = factory,
-                onBack = { navController.popBackStack() }
-            )
-        }
-
-        // -----------------------------------------------------------
-        // ⚡ PRODUCT DETAIL
+        // PRODUCT DETAIL
         // -----------------------------------------------------------
         composable(
-            route = "product_detail/{productId}",
+            "product_detail/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
-        ) { backStackEntry ->
-            val productId = backStackEntry.arguments?.getInt("productId")
-            if (productId != null) {
-                val productViewModel: ProductViewModel = viewModel(factory = factory)
+        ) { entry ->
+            val productId = entry.arguments?.getInt("productId")
+            val productViewModel: ProductViewModel = viewModel(factory = factory)
 
-                LaunchedEffect(Unit) {
-                    productViewModel.loadProducts()
-                }
+            LaunchedEffect(Unit) { productViewModel.loadProducts() }
 
-                val products by productViewModel.products.collectAsState()
-                val product = products.find { it.id == productId }
+            val products by productViewModel.products.collectAsState()
+            val product = products.find { it.id == productId }
 
-                if (product != null) {
-                    ProductDetailScreen(
-                        product = product,
-                        factory = factory,
-                        onBack = { navController.popBackStack() },
-                        onGoToCart = { navController.navigate("cart") }
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("Producto no encontrado o cargando...")
-                    }
+            if (product != null) {
+                ProductDetailScreen(
+                    product = product,
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onGoToCart = { navController.navigate("cart") }
+                )
+            } else {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Producto no encontrado.")
                 }
             }
         }

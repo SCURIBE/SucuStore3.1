@@ -11,9 +11,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,7 +27,7 @@ import com.example.sucustore.viewmodel.SucuStoreViewModelFactory
 fun ProductScreen(
     factory: SucuStoreViewModelFactory,
     authViewModel: AuthViewModel,
-    navController: NavController, // Lo necesitamos de nuevo
+    navController: NavController,
     onProductClick: (Product) -> Unit,
     onAddNewProduct: () -> Unit,
     onBack: () -> Unit
@@ -40,20 +38,48 @@ fun ProductScreen(
     val isAdmin = currentUser?.role?.name == "ADMIN"
     val searchText by productViewModel.searchText.collectAsState()
 
+    var productToDelete by remember { mutableStateOf<Product?>(null) }
+
+    if (productToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { productToDelete = null },
+            title = { Text("Eliminar producto") },
+            text = { Text("¿Eliminar \"${productToDelete!!.name}\"?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        productViewModel.deleteProduct(productToDelete!!)
+                        productToDelete = null
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { productToDelete = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = if (isAdmin) "Gestionar Productos" else currentUser?.name?.let { "Bienvenido(a), $it" } ?: "Productos",
+                        if (isAdmin) "Gestionar Productos"
+                        else currentUser?.name?.let { "Bienvenido(a), $it" } ?: "Productos",
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = if (isAdmin) Icons.AutoMirrored.Filled.ArrowBack else Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = if (isAdmin) "Volver" else "Cerrar Sesión"
+                            imageVector = if (isAdmin)
+                                Icons.AutoMirrored.Filled.ArrowBack
+                            else Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = null
                         )
                     }
                 },
@@ -63,7 +89,6 @@ fun ProductScreen(
                             Icon(Icons.Default.Add, contentDescription = "Añadir Producto")
                         }
                     }
-                    // Añadimos el carrito para todos
                     IconButton(onClick = { navController.navigate("cart") }) {
                         Icon(Icons.Default.ShoppingCart, contentDescription = "Carrito")
                     }
@@ -71,17 +96,17 @@ fun ProductScreen(
             )
         }
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
+
+        Column(Modifier.padding(paddingValues)) {
+
             OutlinedTextField(
                 value = searchText,
                 onValueChange = productViewModel::onSearchTextChange,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(16.dp),
                 placeholder = { Text("Buscar producto...") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "Icono de búsqueda")
-                }
+                leadingIcon = { Icon(Icons.Default.Search, null) }
             )
 
             LazyVerticalGrid(
@@ -92,10 +117,24 @@ fun ProductScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(products) { product ->
+
                     ProductCard(
                         product = product,
-                        onProductClick = { onProductClick(product) }
+                        isAdmin = isAdmin,
+                        onProductClick = { onProductClick(product) },
+                        onEditClick = {
+                            navController.navigate("edit_product/${product.id}")
+                        }
                     )
+
+                    if (isAdmin) {
+                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { productToDelete = product }
+                        ) {
+                            Text("Eliminar")
+                        }
+                    }
                 }
             }
         }

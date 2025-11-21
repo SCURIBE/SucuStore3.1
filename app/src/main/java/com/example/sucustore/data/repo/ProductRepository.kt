@@ -9,10 +9,12 @@ class ProductRepository(private val productDao: ProductDao) {
         productDao.insert(product)
     }
 
-    // --- CORRECCIÓN ---
-    // Ahora esta función se llama 'getAll' para que coincida con el Dao.
     suspend fun getAll(): List<Product> {
         return productDao.getAll()
+    }
+
+    suspend fun getById(id: Int): Product? {
+        return productDao.getById(id)
     }
 
     suspend fun updateProduct(product: Product) {

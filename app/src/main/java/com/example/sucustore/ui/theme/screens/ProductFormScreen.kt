@@ -25,11 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import coil.compose.rememberAsyncImagePainter
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.sucustore.R
-import coil.compose.rememberAsyncImagePainter
 import com.example.sucustore.data.db.entity.Product
 import com.example.sucustore.viewmodel.ProductViewModel
 import kotlinx.coroutines.delay
@@ -48,7 +48,10 @@ fun ProductFormScreen(
     var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
     var description by remember { mutableStateOf(existingProduct?.description ?: "") }
     var stock by remember { mutableStateOf(existingProduct?.stock?.toString() ?: "") }
-    var imageUri by remember { mutableStateOf<Uri?>(existingProduct?.imageUri?.let { Uri.parse(it) }) }
+    var imageUri by remember {
+        mutableStateOf<Uri?>(existingProduct?.imageUri?.let { Uri.parse(it) })
+    }
+
     val context = LocalContext.current
 
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -58,8 +61,12 @@ fun ProductFormScreen(
 
     var showSuccessAnimation by remember { mutableStateOf(false) }
 
+    //PERMISOS DE CÁMARA
     var hasCamPermission by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
+                    == PackageManager.PERMISSION_GRANTED
+        )
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -71,9 +78,7 @@ fun ProductFormScreen(
     val takePhotoLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bmp ->
-        if (bmp != null) {
-            imageUri = saveBitmapAndGetUri(context, bmp)
-        }
+        if (bmp != null) imageUri = saveBitmapAndGetUri(context, bmp)
     }
 
     Scaffold(
@@ -88,8 +93,11 @@ fun ProductFormScreen(
             )
         }
     ) { innerPadding ->
+
         Box(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
             contentAlignment = Alignment.Center
         ) {
             if (showSuccessAnimation) {
@@ -102,11 +110,18 @@ fun ProductFormScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+                    // IMAGEN
                     if (imageUri != null) {
-                        Image(painter = rememberAsyncImagePainter(imageUri), contentDescription = "Foto", modifier = Modifier.size(150.dp))
+                        Image(
+                            painter = rememberAsyncImagePainter(imageUri),
+                            contentDescription = "Foto",
+                            modifier = Modifier.size(150.dp)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
 
+                    Spacer(Modifier.height(16.dp))
+
+                    // CAMPOS
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it; nameError = null },
@@ -115,7 +130,9 @@ fun ProductFormScreen(
                         isError = nameError != null,
                         supportingText = { if (nameError != null) Text(nameError!!) }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Spacer(Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = price,
                         onValueChange = { price = it; priceError = null },
@@ -125,7 +142,9 @@ fun ProductFormScreen(
                         isError = priceError != null,
                         supportingText = { if (priceError != null) Text(priceError!!) }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Spacer(Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = stock,
                         onValueChange = { stock = it; stockError = null },
@@ -135,7 +154,9 @@ fun ProductFormScreen(
                         isError = stockError != null,
                         supportingText = { if (stockError != null) Text(stockError!!) }
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Spacer(Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it; descriptionError = null },
@@ -145,51 +166,46 @@ fun ProductFormScreen(
                         supportingText = { if (descriptionError != null) Text(descriptionError!!) }
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
 
                     Button(onClick = {
-                        if (hasCamPermission) {
-                            takePhotoLauncher.launch(null)
-                        } else {
-                            permissionLauncher.launch(Manifest.permission.CAMERA)
-                        }
+                        if (hasCamPermission) takePhotoLauncher.launch(null)
+                        else permissionLauncher.launch(Manifest.permission.CAMERA)
                     }) {
                         Text("Tomar Foto")
                     }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(Modifier.height(24.dp))
 
+                    // BOTÓN GUARDAR
                     Button(onClick = {
+
                         var isValid = true
-                        if (name.isBlank()) {
-                            nameError = "El nombre es obligatorio"
-                            isValid = false
-                        }
-                        if (price.isBlank()) {
-                            priceError = "El precio es obligatorio"
-                            isValid = false
-                        }
-                        if (stock.isBlank()) {
-                            stockError = "El stock es obligatorio"
-                            isValid = false
-                        }
-                        if (description.isBlank()) {
-                            descriptionError = "La descripción es obligatoria"
-                            isValid = false
+
+                        if (name.isBlank()) { nameError = "El nombre es obligatorio"; isValid = false }
+                        if (price.isBlank()) { priceError = "El precio es obligatorio"; isValid = false }
+                        if (stock.isBlank()) { stockError = "El stock es obligatorio"; isValid = false }
+                        if (description.isBlank()) { descriptionError = "La descripción es obligatoria"; isValid = false }
+
+                        if (!isValid) return@Button
+
+                        val productToSave = Product(
+                            id = existingProduct?.id ?: 0,
+                            name = name,
+                            price = price.toDoubleOrNull() ?: 0.0,
+                            description = description,
+                            stock = stock.toIntOrNull() ?: 0,
+                            imageUri = imageUri?.toString()
+                        )
+
+                        // 🔥 LÓGICA FINAL: ACTUALIZAR O INSERTAR
+                        if (existingProduct == null) {
+                            productViewModel.insertProduct(productToSave)
+                        } else {
+                            productViewModel.updateProduct(productToSave)
                         }
 
-                        if (isValid) {
-                            val productToSave = Product(
-                                id = existingProduct?.id ?: 0,
-                                name = name,
-                                price = price.toDoubleOrNull() ?: 0.0,
-                                description = description,
-                                stock = stock.toIntOrNull() ?: 0,
-                                imageUri = imageUri?.toString()
-                            )
-                            productViewModel.insertProduct(productToSave)
-                            showSuccessAnimation = true
-                        }
+                        showSuccessAnimation = true
                     }) {
                         Text("Guardar")
                     }
@@ -201,7 +217,9 @@ fun ProductFormScreen(
 
 @Composable
 fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.success_animation))
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.success_animation)
+    )
 
     LaunchedEffect(Unit) {
         delay(2000)
@@ -220,15 +238,17 @@ fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
             tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(16.dp))
+
         LottieAnimation(
             composition = composition,
             isPlaying = true,
             restartOnPlay = true,
             modifier = Modifier.size(200.dp)
         )
+
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            "¡Producto agregado con éxito!",
+            "¡Producto guardado con éxito!",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
