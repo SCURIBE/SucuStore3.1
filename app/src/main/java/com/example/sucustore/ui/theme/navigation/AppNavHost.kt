@@ -19,7 +19,10 @@ import com.example.sucustore.ui.theme.product.ProductScreen
 import com.example.sucustore.ui.theme.screens.*
 import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
+import com.example.sucustore.ui.theme.screens.auth.UserProfileScreen
+import com.example.sucustore.ui.theme.screens.order.OrderHistoryScreen
 import com.example.sucustore.viewmodel.AuthViewModel
+import com.example.sucustore.viewmodel.OrderViewModel
 import com.example.sucustore.viewmodel.ProductViewModel
 import com.example.sucustore.viewmodel.SucuStoreViewModelFactory
 
@@ -225,12 +228,31 @@ fun AppNavHost(
             }
         }
 
-        // 👉 NUEVA RUTA PERFIL
+        // PERFIL
         composable("profile") {
             UserProfileScreen(
                 authViewModel = authViewModel,
                 onBack = { navController.popBackStack() }
             )
+        }
+
+        // 📜 HISTORIAL DE COMPRAS (CLIENTE)
+        composable("orders") {
+            val currentUser by authViewModel.currentUser.collectAsState()
+            val orderViewModel: OrderViewModel = viewModel(factory = factory)
+
+            if (currentUser == null) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Debes iniciar sesión para ver tus pedidos.")
+                }
+            } else {
+                OrderHistoryScreen(
+                    orderViewModel = orderViewModel,
+                    isAdmin = false,
+                    userId = currentUser!!.id,
+                    onBack = { navController.popBackStack() }
+                )
+            }
         }
     }
 }
