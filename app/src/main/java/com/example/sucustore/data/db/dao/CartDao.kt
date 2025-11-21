@@ -9,19 +9,15 @@ import com.example.sucustore.data.db.entity.CartItem
 @Dao
 interface CartDao {
 
-    // ➕ Agregar producto al carrito
     @Insert
     suspend fun insert(item: CartItem): Long
 
-    // 🔁 Obtener carrito del usuario
     @Query("SELECT * FROM cart WHERE userId = :userId")
     suspend fun getCartByUser(userId: Int): List<CartItem>
 
-    // ❌ Eliminar producto específico del carrito
     @Delete
     suspend fun delete(cartItem: CartItem)
 
-    // 🧹 Vaciar carrito del usuario
     @Query("DELETE FROM cart WHERE userId = :userId")
     suspend fun clearCart(userId: Int)
 }

@@ -21,23 +21,32 @@ class CartViewModel(private val repository: CartRepository) : ViewModel() {
 
     fun addToCart(userId: Int, productId: Int, quantity: Int) {
         viewModelScope.launch {
-            val existingItem = _cartItems.value.find { it.productId == productId && it.userId == userId }
-            if (existingItem != null) {
-                // Si el item ya existe, actualizamos la cantidad
-                val updatedItem = existingItem.copy(quantity = existingItem.quantity + quantity)
-                repository.addToCart(updatedItem) // Room se encargará de reemplazarlo por el @Insert
-            } else {
-                // Si es un item nuevo, lo insertamos
-                repository.addToCart(CartItem(userId = userId, productId = productId, quantity = quantity))
+
+            val existing = _cartItems.value.find {
+                it.userId == userId && it.productId == productId
             }
-            loadCart(userId) // Recargamos el carrito para reflejar los cambios
+
+            if (existing != null) {
+                val updated = existing.copy(quantity = existing.quantity + quantity)
+                repository.addToCart(updated)
+            } else {
+                repository.addToCart(
+                    CartItem(
+                        userId = userId,
+                        productId = productId,
+                        quantity = quantity
+                    )
+                )
+            }
+
+            loadCart(userId)
         }
     }
 
-    fun removeFromCart(cartItem: CartItem) {
+    fun removeFromCart(item: CartItem) {
         viewModelScope.launch {
-            repository.removeFromCart(cartItem)
-            loadCart(cartItem.userId)
+            repository.removeFromCart(item)
+            loadCart(item.userId)
         }
     }
 

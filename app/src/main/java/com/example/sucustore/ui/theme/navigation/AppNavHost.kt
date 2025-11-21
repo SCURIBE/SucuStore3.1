@@ -19,8 +19,6 @@ import com.example.sucustore.ui.theme.product.ProductScreen
 import com.example.sucustore.ui.theme.screens.*
 import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
-import com.example.sucustore.ui.theme.screens.home.HomeScreen
-import com.example.sucustore.ui.theme.screens.order.OrderScreen
 import com.example.sucustore.viewmodel.AuthViewModel
 import com.example.sucustore.viewmodel.ProductViewModel
 import com.example.sucustore.viewmodel.SucuStoreViewModelFactory
@@ -34,9 +32,6 @@ fun AppNavHost(
 
     NavHost(navController = navController, startDestination = "splash") {
 
-        // -----------------------------------------------------------
-        // SPLASH
-        // -----------------------------------------------------------
         composable("splash") {
             val currentUser by authViewModel.currentUser.collectAsState()
 
@@ -52,9 +47,7 @@ fun AppNavHost(
             })
         }
 
-        // -----------------------------------------------------------
         // LOGIN
-        // -----------------------------------------------------------
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -72,9 +65,7 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
         // REGISTER
-        // -----------------------------------------------------------
         composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
@@ -89,9 +80,7 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
         // RECOVER PASSWORD
-        // -----------------------------------------------------------
         composable("recover_password") {
             RecoverPasswordScreen(
                 authViewModel = authViewModel,
@@ -113,9 +102,7 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
         // LOADING
-        // -----------------------------------------------------------
         composable(
             "loading/{route}",
             arguments = listOf(navArgument("route") { type = NavType.StringType })
@@ -126,9 +113,7 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
         // ADMIN DASHBOARD
-        // -----------------------------------------------------------
         composable("admin_dashboard") {
             AdminDashboardScreen(
                 navController = navController,
@@ -139,9 +124,7 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
-        // CREATE PRODUCT
-        // -----------------------------------------------------------
+        // ADD PRODUCT
         composable("add_product") {
             ProductFormScreen(
                 productViewModel = viewModel(factory = factory),
@@ -150,9 +133,8 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
-        // EDIT PRODUCT - YA FUNCIONA
-        // -----------------------------------------------------------
+        // ----------- FIX DEL ERROR AQUÍ -----------------
+        // EDIT PRODUCT
         composable(
             route = "edit_product/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
@@ -161,9 +143,12 @@ fun AppNavHost(
             val productId = entry.arguments?.getInt("productId") ?: 0
             val productViewModel: ProductViewModel = viewModel(factory = factory)
 
-            val product by produceState<com.example.sucustore.data.db.entity.Product?>(initialValue = null) {
-                value = productViewModel.repository.getById(productId)
+            LaunchedEffect(productId) {
+                productViewModel.loadProducts()
             }
+
+            val products by productViewModel.products.collectAsState()
+            val product = products.find { it.id == productId }
 
             if (product == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -171,17 +156,16 @@ fun AppNavHost(
                 }
             } else {
                 ProductFormScreen(
-                    existingProduct = product!!,
+                    existingProduct = product,
                     productViewModel = productViewModel,
                     onSave = { navController.popBackStack() },
                     onBack = { navController.popBackStack() }
                 )
             }
         }
+        // -------------------------------------------------
 
-        // -----------------------------------------------------------
         // CART
-        // -----------------------------------------------------------
         composable("cart") {
             CartScreen(
                 factory = factory,
@@ -192,9 +176,7 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
         // PRODUCT LIST
-        // -----------------------------------------------------------
         composable("products") {
             val currentUser by authViewModel.currentUser.collectAsState()
             val isAdmin = currentUser?.role?.name == "ADMIN"
@@ -218,9 +200,7 @@ fun AppNavHost(
             )
         }
 
-        // -----------------------------------------------------------
         // PRODUCT DETAIL
-        // -----------------------------------------------------------
         composable(
             "product_detail/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })

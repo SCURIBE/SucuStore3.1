@@ -13,19 +13,20 @@ import kotlinx.coroutines.launch
 
 class SucuStoreApp : Application() {
 
-    // Se crea una ÚNICA instancia de la base de datos para toda la aplicación.
-    // Usamos 'lazy' para que solo se cree cuando se necesite por primera vez.
+    // Base de datos singleton
     val database: AppDatabase by lazy { AppDatabase.getDatabase(this) }
 
-    // Se crean los repositorios una sola vez, usando los DAOs de la base de datos única.
+    // Repositorios singleton
     val userRepository by lazy { UserRepository(database.userDao()) }
     val productRepository by lazy { ProductRepository(database.productDao()) }
     val orderRepository by lazy { OrderRepository(database.orderDao()) }
+
+    // 🔥 ESTE FALTABA
     val cartRepository by lazy { CartRepository(database.cartDao()) }
 
     override fun onCreate() {
         super.onCreate()
-        // Al iniciar la app, se lanzan las semillas en un hilo secundario.
+
         CoroutineScope(Dispatchers.IO).launch {
             Seed.plant(this@SucuStoreApp)
         }

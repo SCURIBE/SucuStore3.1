@@ -51,7 +51,6 @@ fun ProductFormScreen(
     var imageUri by remember {
         mutableStateOf<Uri?>(existingProduct?.imageUri?.let { Uri.parse(it) })
     }
-
     val context = LocalContext.current
 
     var nameError by remember { mutableStateOf<String?>(null) }
@@ -61,22 +60,23 @@ fun ProductFormScreen(
 
     var showSuccessAnimation by remember { mutableStateOf(false) }
 
-    //PERMISOS DE CÁMARA
     var hasCamPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
-                    == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.CAMERA
+            ) == PackageManager.PERMISSION_GRANTED
         )
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasCamPermission = isGranted
     }
 
     val takePhotoLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
+        ActivityResultContracts.TakePicturePreview()
     ) { bmp ->
         if (bmp != null) imageUri = saveBitmapAndGetUri(context, bmp)
     }
@@ -93,11 +93,10 @@ fun ProductFormScreen(
             )
         }
     ) { innerPadding ->
-
         Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             if (showSuccessAnimation) {
@@ -110,7 +109,7 @@ fun ProductFormScreen(
                         .verticalScroll(rememberScrollState()),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // IMAGEN
+
                     if (imageUri != null) {
                         Image(
                             painter = rememberAsyncImagePainter(imageUri),
@@ -121,14 +120,12 @@ fun ProductFormScreen(
 
                     Spacer(Modifier.height(16.dp))
 
-                    // CAMPOS
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it; nameError = null },
                         label = { Text("Nombre") },
                         modifier = Modifier.fillMaxWidth(),
-                        isError = nameError != null,
-                        supportingText = { if (nameError != null) Text(nameError!!) }
+                        isError = nameError != null
                     )
 
                     Spacer(Modifier.height(8.dp))
@@ -139,8 +136,7 @@ fun ProductFormScreen(
                         label = { Text("Precio") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
-                        isError = priceError != null,
-                        supportingText = { if (priceError != null) Text(priceError!!) }
+                        isError = priceError != null
                     )
 
                     Spacer(Modifier.height(8.dp))
@@ -151,8 +147,7 @@ fun ProductFormScreen(
                         label = { Text("Stock") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
-                        isError = stockError != null,
-                        supportingText = { if (stockError != null) Text(stockError!!) }
+                        isError = stockError != null
                     )
 
                     Spacer(Modifier.height(8.dp))
@@ -162,8 +157,7 @@ fun ProductFormScreen(
                         onValueChange = { description = it; descriptionError = null },
                         label = { Text("Descripción") },
                         modifier = Modifier.fillMaxWidth(),
-                        isError = descriptionError != null,
-                        supportingText = { if (descriptionError != null) Text(descriptionError!!) }
+                        isError = descriptionError != null
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -177,35 +171,31 @@ fun ProductFormScreen(
 
                     Spacer(Modifier.height(24.dp))
 
-                    // BOTÓN GUARDAR
                     Button(onClick = {
+                        var valid = true
+                        if (name.isBlank()) { nameError = "Requerido"; valid = false }
+                        if (price.isBlank()) { priceError = "Requerido"; valid = false }
+                        if (stock.isBlank()) { stockError = "Requerido"; valid = false }
+                        if (description.isBlank()) { descriptionError = "Requerido"; valid = false }
 
-                        var isValid = true
+                        if (valid) {
+                            val product = Product(
+                                id = existingProduct?.id ?: 0,
+                                name = name,
+                                price = price.toDoubleOrNull() ?: 0.0,
+                                description = description,
+                                stock = stock.toIntOrNull() ?: 0,
+                                imageUri = imageUri?.toString()
+                            )
 
-                        if (name.isBlank()) { nameError = "El nombre es obligatorio"; isValid = false }
-                        if (price.isBlank()) { priceError = "El precio es obligatorio"; isValid = false }
-                        if (stock.isBlank()) { stockError = "El stock es obligatorio"; isValid = false }
-                        if (description.isBlank()) { descriptionError = "La descripción es obligatoria"; isValid = false }
+                            if (existingProduct == null) {
+                                productViewModel.insertProduct(product)
+                            } else {
+                                productViewModel.updateProduct(product)
+                            }
 
-                        if (!isValid) return@Button
-
-                        val productToSave = Product(
-                            id = existingProduct?.id ?: 0,
-                            name = name,
-                            price = price.toDoubleOrNull() ?: 0.0,
-                            description = description,
-                            stock = stock.toIntOrNull() ?: 0,
-                            imageUri = imageUri?.toString()
-                        )
-
-                        // 🔥 LÓGICA FINAL: ACTUALIZAR O INSERTAR
-                        if (existingProduct == null) {
-                            productViewModel.insertProduct(productToSave)
-                        } else {
-                            productViewModel.updateProduct(productToSave)
+                            showSuccessAnimation = true
                         }
-
-                        showSuccessAnimation = true
                     }) {
                         Text("Guardar")
                     }
@@ -217,9 +207,7 @@ fun ProductFormScreen(
 
 @Composable
 fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
-    val composition by rememberLottieComposition(
-        LottieCompositionSpec.RawRes(R.raw.success_animation)
-    )
+    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.success_animation))
 
     LaunchedEffect(Unit) {
         delay(2000)
@@ -227,9 +215,9 @@ fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
     }
 
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
             imageVector = Icons.Default.CheckCircle,
@@ -237,18 +225,15 @@ fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
             modifier = Modifier.size(120.dp),
             tint = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(16.dp))
-
+        Spacer(Modifier.height(16.dp))
         LottieAnimation(
             composition = composition,
             isPlaying = true,
             restartOnPlay = true,
             modifier = Modifier.size(200.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            "¡Producto guardado con éxito!",
+        Spacer(Modifier.height(16.dp))
+        Text("¡Producto guardado con éxito!",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
@@ -257,8 +242,8 @@ fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
 
 private fun saveBitmapAndGetUri(context: Context, bitmap: Bitmap): Uri {
     val file = File(context.cacheDir, "photo_${System.currentTimeMillis()}.jpg")
-    FileOutputStream(file).use { out ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+    FileOutputStream(file).use {
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it)
     }
     return Uri.fromFile(file)
 }

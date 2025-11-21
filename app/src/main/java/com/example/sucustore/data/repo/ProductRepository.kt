@@ -9,19 +9,19 @@ class ProductRepository(private val productDao: ProductDao) {
         productDao.insert(product)
     }
 
-    suspend fun getAll(): List<Product> {
-        return productDao.getAll()
-    }
-
-    suspend fun getById(id: Int): Product? {
-        return productDao.getById(id)
-    }
-
     suspend fun updateProduct(product: Product) {
         productDao.update(product)
     }
 
     suspend fun deleteProduct(product: Product) {
         productDao.delete(product)
+    }
+
+    suspend fun getAll(): List<Product> {
+        return productDao.getAll()
+    }
+
+    suspend fun getById(id: Int): Product? {
+        return productDao.getById(id)
     }
 }

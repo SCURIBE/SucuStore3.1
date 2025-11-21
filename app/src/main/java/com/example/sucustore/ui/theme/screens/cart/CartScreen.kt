@@ -23,10 +23,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.sucustore.R
-import com.example.sucustore.viewmodel.AuthViewModel
-import com.example.sucustore.viewmodel.CartViewModel
-import com.example.sucustore.viewmodel.OrderViewModel
-import com.example.sucustore.viewmodel.SucuStoreViewModelFactory
+import com.example.sucustore.viewmodel.*
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,15 +36,20 @@ fun CartScreen(
     val cartViewModel: CartViewModel = viewModel(factory = factory)
     val authViewModel: AuthViewModel = viewModel(factory = factory)
     val orderViewModel: OrderViewModel = viewModel(factory = factory)
+    val productViewModel: ProductViewModel = viewModel(factory = factory)
 
     val currentUser by authViewModel.currentUser.collectAsState()
     val cartItems by cartViewModel.cartItems.collectAsState()
+    val products by productViewModel.products.collectAsState()
 
     var showAnimation by remember { mutableStateOf(false) }
+
+    val productMap = remember(products) { products.associateBy { it.id } }
 
     LaunchedEffect(currentUser) {
         currentUser?.let { user ->
             cartViewModel.loadCart(user.id)
+            productViewModel.loadProducts()
         }
     }
 
@@ -71,17 +73,23 @@ fun CartScreen(
         }
     ) { padding ->
         Box(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
             contentAlignment = Alignment.Center
         ) {
             if (showAnimation) {
-                PaymentAnimation(onAnimationFinished = {
-                    showAnimation = false
-                    onCheckoutComplete() // Navega a la pantalla de productos
-                })
+                PaymentAnimation(
+                    onAnimationFinished = {
+                        showAnimation = false
+                        onCheckoutComplete()
+                    }
+                )
             } else {
                 Column(
-                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxSize(),
                     verticalArrangement = Arrangement.Top
                 ) {
                     if (currentUser == null) {
@@ -90,24 +98,37 @@ fun CartScreen(
                     }
 
                     if (cartItems.isEmpty()) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text("Tu carrito está vacío 🌵")
                         }
                     } else {
+
                         LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             items(cartItems) { item ->
+                                val product = productMap[item.productId]
+
                                 Card(modifier = Modifier.fillMaxWidth()) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Column {
-                                            Text("Producto ID: ${item.productId}")
+                                            Text(product?.name ?: "Producto #${item.productId}")
                                             Text("Cantidad: ${item.quantity}")
+                                            if (product != null) {
+                                                Text("Precio unitario: \$${"%.0f".format(product.price)}")
+                                            }
                                         }
 
-                                        IconButton(onClick = { cartViewModel.removeFromCart(item) }) {
+                                        IconButton(
+                                            onClick = { cartViewModel.removeFromCart(item) }
+                                        ) {
                                             Icon(
                                                 Icons.Default.Delete,
                                                 contentDescription = "Eliminar",
@@ -121,10 +142,16 @@ fun CartScreen(
 
                         Spacer(Modifier.height(24.dp))
 
-                        val total = cartItems.sumOf { it.quantity * 1000.0 } // Simula precio
+                        val total = cartItems.sumOf { item ->
+                            val product = productMap[item.productId]
+                            (product?.price ?: 0.0) * item.quantity
+                        }
+
                         AnimatedContent(
                             targetState = total,
-                            transitionSpec = { slideInVertically() togetherWith slideOutVertically() },
+                            transitionSpec = {
+                                slideInVertically() togetherWith slideOutVertically()
+                            },
                             label = "cartTotal"
                         ) { animatedTotal ->
                             Text(
@@ -135,6 +162,7 @@ fun CartScreen(
 
                         Spacer(Modifier.height(16.dp))
 
+                        // BOTÓN COMPRAR AHORA
                         Button(
                             onClick = {
                                 orderViewModel.createOrder(
@@ -147,7 +175,7 @@ fun CartScreen(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Finalizar compra 🌿")
+                            Text("Comprar ahora")
                         }
                     }
                 }
@@ -158,19 +186,24 @@ fun CartScreen(
 
 @Composable
 fun PaymentAnimation(onAnimationFinished: () -> Unit) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.payment_successful))
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.payment_successful)
+    )
     val progress by animateLottieCompositionAsState(
         composition = composition,
         isPlaying = true,
         restartOnPlay = true,
-        speed = 1.5f
+        speed = 1.4f
     )
-    var showSuccessMessage by remember { mutableStateOf(false) }
+
+    var showFinalMessage by remember { mutableStateOf(false) }
 
     LaunchedEffect(progress) {
+        if (progress >= 0.6f && !showFinalMessage) {
+            showFinalMessage = true
+        }
         if (progress >= 1f) {
-            showSuccessMessage = true
-            delay(1500) // Show success message for 1.5 seconds
+            delay(1400)
             onAnimationFinished()
         }
     }
@@ -180,24 +213,42 @@ fun PaymentAnimation(onAnimationFinished: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         modifier = Modifier.fillMaxSize()
     ) {
-        if (!showSuccessMessage) {
-            LottieAnimation(
-                composition = composition,
-                progress = { progress },
-                modifier = Modifier.size(200.dp)
+
+        if (!showFinalMessage) {
+            // ✔ PRIMER TICKET + MENSAJE
+            Icon(
+                imageVector = Icons.Default.CheckCircle,
+                contentDescription = "Compra lista",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(130.dp)
             )
+
+            Spacer(Modifier.height(14.dp))
+
+            Text(
+                "Compra realizada exitosamente",
+                style = MaterialTheme.typography.headlineSmall,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
         } else {
+
+            // ✔ ANIMACIÓN FINAL
             Icon(
                 imageVector = Icons.Default.CheckCircle,
                 contentDescription = "Pago completado",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(120.dp)
             )
-            Spacer(modifier = Modifier.height(16.dp))
+
+            Spacer(Modifier.height(14.dp))
+
             Text(
                 "Pago completado",
                 style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
     }

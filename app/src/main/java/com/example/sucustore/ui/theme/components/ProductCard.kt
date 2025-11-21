@@ -1,46 +1,49 @@
-package com.example.sucustore.ui.components
+package com.example.sucustore.ui.theme.product
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.rememberAsyncImagePainter
+import coil.compose.AsyncImage
 import com.example.sucustore.data.db.entity.Product
 
 @Composable
 fun ProductCard(
     product: Product,
-    onAddToCart: (() -> Unit)? = null,
-    onEdit: (() -> Unit)? = null,
-    onDelete: (() -> Unit)? = null
+    onProductClick: (Product) -> Unit,
+    onAddToCart: ((Product) -> Unit)? = null // <-- OPCIONAL
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.padding(12.dp)) {
-            val painter = rememberAsyncImagePainter(model = product.imageUri)
-            Image(
-                painter = painter,
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .clickable { onProductClick(product) }
+    ) {
+        Column {
+
+            AsyncImage(
+                model = product.imageUri,
                 contentDescription = product.name,
-                modifier = Modifier.size(64.dp),
-                contentScale = ContentScale.Crop
+                modifier = Modifier
+                    .height(180.dp)
+                    .fillMaxWidth()
             )
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(product.name, style = MaterialTheme.typography.titleMedium)
-                Text(product.description, style = MaterialTheme.typography.bodySmall)
-                Text("$${product.price} | Stock: ${product.stock}", style = MaterialTheme.typography.bodySmall)
-            }
-            Column {
+
+            Column(Modifier.padding(12.dp)) {
+                Text(product.name, fontWeight = FontWeight.Bold)
+                Text("\$${product.price}")
+
+                // SOLO MUESTRA EL BOTÓN SI SE ENVÍA onAddToCart
                 if (onAddToCart != null) {
-                    Button(onClick = onAddToCart) { Text("Agregar") }
-                }
-                if (onEdit != null) {
-                    TextButton(onClick = onEdit) { Text("Editar") }
-                }
-                if (onDelete != null) {
-                    TextButton(onClick = onDelete) { Text("Eliminar") }
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = { onAddToCart(product) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Agregar al carrito")
+                    }
                 }
             }
         }
