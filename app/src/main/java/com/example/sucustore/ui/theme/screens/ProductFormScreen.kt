@@ -19,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,22 +43,25 @@ fun ProductFormScreen(
     onBack: () -> Unit,
     productViewModel: ProductViewModel
 ) {
+    // ---------- ESTADOS ----------
     var name by remember { mutableStateOf(existingProduct?.name ?: "") }
     var price by remember { mutableStateOf(existingProduct?.price?.toString() ?: "") }
     var description by remember { mutableStateOf(existingProduct?.description ?: "") }
     var stock by remember { mutableStateOf(existingProduct?.stock?.toString() ?: "") }
-    var imageUri by remember {
-        mutableStateOf<Uri?>(existingProduct?.imageUri?.let { Uri.parse(it) })
-    }
+    var imageUri by remember { mutableStateOf<Uri?>(existingProduct?.imageUri?.let { Uri.parse(it) }) }
+
     val context = LocalContext.current
 
+    // Errores
     var nameError by remember { mutableStateOf<String?>(null) }
     var priceError by remember { mutableStateOf<String?>(null) }
     var stockError by remember { mutableStateOf<String?>(null) }
     var descriptionError by remember { mutableStateOf<String?>(null) }
+    var imageError by remember { mutableStateOf<String?>(null) }
 
     var showSuccessAnimation by remember { mutableStateOf(false) }
 
+    // Permiso de cámara
     var hasCamPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -71,20 +73,37 @@ fun ProductFormScreen(
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasCamPermission = isGranted
+    ) { granted ->
+        hasCamPermission = granted
     }
 
+    // 📸 Launcher para tomar foto con la cámara
     val takePhotoLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview()
     ) { bmp ->
-        if (bmp != null) imageUri = saveBitmapAndGetUri(context, bmp)
+        if (bmp != null) {
+            imageUri = saveBitmapAndGetUri(context, bmp)
+            imageError = null
+        }
     }
 
+    // 🖼️ NUEVO: launcher para seleccionar imagen desde la galería
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            imageUri = uri
+            imageError = null
+        }
+    }
+
+    // ---------- UI ----------
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (existingProduct == null) "Agregar Producto" else "Editar Producto") },
+                title = {
+                    Text(if (existingProduct == null) "Agregar Producto" else "Editar Producto")
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -93,112 +112,212 @@ fun ProductFormScreen(
             )
         }
     ) { innerPadding ->
+
         Box(
             modifier = Modifier
                 .padding(innerPadding)
-                .fillMaxSize(),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
         ) {
+
+            // Éxito → animación
             if (showSuccessAnimation) {
                 ProductAddedAnimation(onAnimationFinished = onSave)
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                return@Box
+            }
 
-                    if (imageUri != null) {
-                        Image(
-                            painter = rememberAsyncImagePainter(imageUri),
-                            contentDescription = "Foto",
-                            modifier = Modifier.size(150.dp)
-                        )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                // ---------- IMAGEN ----------
+                if (imageUri != null) {
+                    Image(
+                        painter = rememberAsyncImagePainter(imageUri),
+                        contentDescription = "Foto planta",
+                        modifier = Modifier
+                            .size(150.dp)
+                    )
+                }
+
+                if (imageError != null) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = imageError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ---------- NOMBRE ----------
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = {
+                        name = it
+                        nameError = null
+                    },
+                    label = { Text("Nombre de la planta") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = nameError != null
+                )
+                nameError?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ---------- PRECIO ----------
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = {
+                        price = it
+                        priceError = null
+                    },
+                    label = { Text("Precio") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = priceError != null
+                )
+                priceError?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ---------- STOCK ----------
+                OutlinedTextField(
+                    value = stock,
+                    onValueChange = {
+                        stock = it
+                        stockError = null
+                    },
+                    label = { Text("Stock disponible") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = stockError != null
+                )
+                stockError?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ---------- DESCRIPCIÓN ----------
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = {
+                        description = it
+                        descriptionError = null
+                    },
+                    label = { Text("Descripción") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = descriptionError != null
+                )
+                descriptionError?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // ---------- BOTÓN FOTO CÁMARA ----------
+                Button(onClick = {
+                    if (hasCamPermission) {
+                        takePhotoLauncher.launch(null)
+                    } else {
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
                     }
+                }) {
+                    Text("Tomar foto de la planta")
+                }
 
-                    Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(8.dp))
 
-                    OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it; nameError = null },
-                        label = { Text("Nombre") },
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = nameError != null
-                    )
+                // 🖼️ NUEVO: BOTÓN FOTO DESDE GALERÍA
+                Button(onClick = {
+                    galleryLauncher.launch("image/*")
+                }) {
+                    Text("Seleccionar desde galería")
+                }
 
-                    Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(24.dp))
 
-                    OutlinedTextField(
-                        value = price,
-                        onValueChange = { price = it; priceError = null },
-                        label = { Text("Precio") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = priceError != null
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = stock,
-                        onValueChange = { stock = it; stockError = null },
-                        label = { Text("Stock") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = stockError != null
-                    )
-
-                    Spacer(Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it; descriptionError = null },
-                        label = { Text("Descripción") },
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = descriptionError != null
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    Button(onClick = {
-                        if (hasCamPermission) takePhotoLauncher.launch(null)
-                        else permissionLauncher.launch(Manifest.permission.CAMERA)
-                    }) {
-                        Text("Tomar Foto")
-                    }
-
-                    Spacer(Modifier.height(24.dp))
-
-                    Button(onClick = {
+                // ---------- BOTÓN GUARDAR ----------
+                Button(
+                    onClick = {
                         var valid = true
-                        if (name.isBlank()) { nameError = "Requerido"; valid = false }
-                        if (price.isBlank()) { priceError = "Requerido"; valid = false }
-                        if (stock.isBlank()) { stockError = "Requerido"; valid = false }
-                        if (description.isBlank()) { descriptionError = "Requerido"; valid = false }
 
-                        if (valid) {
-                            val product = Product(
-                                id = existingProduct?.id ?: 0,
-                                name = name,
-                                price = price.toDoubleOrNull() ?: 0.0,
-                                description = description,
-                                stock = stock.toIntOrNull() ?: 0,
-                                imageUri = imageUri?.toString()
-                            )
-
-                            if (existingProduct == null) {
-                                productViewModel.insertProduct(product)
-                            } else {
-                                productViewModel.updateProduct(product)
-                            }
-
-                            showSuccessAnimation = true
+                        // Validar nombre
+                        nameError = when {
+                            name.isBlank() -> "El nombre es obligatorio"
+                            !Regex("^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$").matches(name) ->
+                                "Solo se permiten letras y espacios"
+                            name.trim().length < 3 ->
+                                "El nombre es demasiado corto"
+                            else -> null
                         }
-                    }) {
-                        Text("Guardar")
-                    }
+                        if (nameError != null) valid = false
+
+                        // Validar precio
+                        priceError = when {
+                            price.isBlank() -> "El precio es obligatorio"
+                            price.toDoubleOrNull() == null -> "Debe ser un número válido"
+                            price.toDouble() <= 0.0 -> "Debe ser mayor a 0"
+                            else -> null
+                        }
+                        if (priceError != null) valid = false
+
+                        // Validar stock
+                        stockError = when {
+                            stock.isBlank() -> "El stock es obligatorio"
+                            stock.toIntOrNull() == null -> "Debe ser un número válido"
+                            stock.toInt() < 0 -> "El stock no puede ser negativo"
+                            else -> null
+                        }
+                        if (stockError != null) valid = false
+
+                        // Validar descripción
+                        descriptionError = when {
+                            description.isBlank() -> "La descripción es obligatoria"
+                            description.trim().length < 10 ->
+                                "Mínimo 10 caracteres"
+                            else -> null
+                        }
+                        if (descriptionError != null) valid = false
+
+                        // Validar imagen
+                        if (imageUri == null) {
+                            imageError = "La foto de la planta es obligatoria"
+                            valid = false
+                        }
+
+                        if (!valid) return@Button
+
+                        // Guardar producto
+                        val product = Product(
+                            id = existingProduct?.id ?: 0,
+                            name = name.trim(),
+                            price = price.toDouble(),
+                            description = description.trim(),
+                            stock = stock.toInt(),
+                            imageUri = imageUri?.toString()
+                        )
+
+                        if (existingProduct == null) {
+                            productViewModel.insertProduct(product)
+                        } else {
+                            productViewModel.updateProduct(product)
+                        }
+
+                        showSuccessAnimation = true
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Guardar")
                 }
             }
         }
@@ -207,7 +326,9 @@ fun ProductFormScreen(
 
 @Composable
 fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
-    val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(R.raw.success_animation))
+    val composition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.success_animation)
+    )
 
     LaunchedEffect(Unit) {
         delay(2000)
@@ -220,7 +341,7 @@ fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.CheckCircle,
+            imageVector = Icons.Filled.CheckCircle,
             contentDescription = "Éxito",
             modifier = Modifier.size(120.dp),
             tint = MaterialTheme.colorScheme.primary
@@ -229,11 +350,11 @@ fun ProductAddedAnimation(onAnimationFinished: () -> Unit) {
         LottieAnimation(
             composition = composition,
             isPlaying = true,
-            restartOnPlay = true,
             modifier = Modifier.size(200.dp)
         )
         Spacer(Modifier.height(16.dp))
-        Text("¡Producto guardado con éxito!",
+        Text(
+            "¡Producto guardado con éxito!",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )

@@ -1,5 +1,9 @@
 package com.example.sucustore.ui.theme.screens.checkout
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -8,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -15,9 +20,14 @@ import androidx.navigation.NavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CheckoutScreen(navController: NavController) {
+
+    // --------- ESTADOS DEL FORMULARIO ---------
     var cardNumber by remember { mutableStateOf("") }
     var expiryDate by remember { mutableStateOf("") }
     var cvv by remember { mutableStateOf("") }
+
+    // Contexto para usar el Vibrator
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -25,7 +35,10 @@ fun CheckoutScreen(navController: NavController) {
                 title = { Text("Finalizar Pago") },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver al Carrito")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver al carrito"
+                        )
                     }
                 }
             )
@@ -38,16 +51,21 @@ fun CheckoutScreen(navController: NavController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.Center
         ) {
+
+            // --------- NÚMERO DE TARJETA ---------
             OutlinedTextField(
                 value = cardNumber,
                 onValueChange = { cardNumber = it },
-                label = { Text("Número de Tarjeta") },
+                label = { Text("Número de tarjeta") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
             )
+
             Spacer(modifier = Modifier.height(16.dp))
+
             Row {
+                // --------- FECHA DE VENCIMIENTO ---------
                 OutlinedTextField(
                     value = expiryDate,
                     onValueChange = { expiryDate = it },
@@ -56,7 +74,10 @@ fun CheckoutScreen(navController: NavController) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     shape = RoundedCornerShape(8.dp)
                 )
+
                 Spacer(modifier = Modifier.width(16.dp))
+
+                // --------- CVV ---------
                 OutlinedTextField(
                     value = cvv,
                     onValueChange = { cvv = it },
@@ -66,10 +87,38 @@ fun CheckoutScreen(navController: NavController) {
                     shape = RoundedCornerShape(8.dp)
                 )
             }
+
             Spacer(modifier = Modifier.height(32.dp))
+
+            // --------- BOTÓN PAGAR (con vibración) ---------
             Button(
-                onClick = { /* TODO: Procesar pago y vaciar carrito */ navController.navigate("products") { popUpTo(0) } },
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                onClick = {
+                    // Aquí iría la lógica real de pago + guardar orden + vaciar carrito
+
+                    // Vibración suave al completar el pago
+                    val vibrator =
+                        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        vibrator.vibrate(
+                            VibrationEffect.createOneShot(
+                                150L, // 0,15 segundos
+                                VibrationEffect.DEFAULT_AMPLITUDE
+                            )
+                        )
+                    } else {
+                        @Suppress("DEPRECATION")
+                        vibrator.vibrate(150L)
+                    }
+
+                    // Volver al catálogo
+                    navController.navigate("products") {
+                        popUpTo(0)
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
                 Text("Pagar")
             }

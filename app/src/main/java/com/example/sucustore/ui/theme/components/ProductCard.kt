@@ -2,8 +2,10 @@ package com.example.sucustore.ui.theme.product
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -14,8 +16,13 @@ import com.example.sucustore.data.db.entity.Product
 fun ProductCard(
     product: Product,
     onProductClick: (Product) -> Unit,
-    onAddToCart: ((Product) -> Unit)? = null // <-- OPCIONAL
+    onAddToCart: ((Product) -> Unit)? = null,   // Cliente
+    isAdmin: Boolean = false,                   // Admin: mostrar menú
+    onEditClick: ((Product) -> Unit)? = null,   // Admin
+    onDeleteClick: ((Product) -> Unit)? = null  // Admin
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .padding(8.dp)
@@ -32,11 +39,50 @@ fun ProductCard(
             )
 
             Column(Modifier.padding(12.dp)) {
-                Text(product.name, fontWeight = FontWeight.Bold)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        product.name,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    // SOLO ADMIN: menú ⋮
+                    if (isAdmin) {
+                        Box {
+                            IconButton(onClick = { menuExpanded = true }) {
+                                Icon(Icons.Filled.MoreVert, contentDescription = "Opciones")
+                            }
+                            DropdownMenu(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Editar") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onEditClick?.invoke(product)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Eliminar") },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onDeleteClick?.invoke(product)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Text("\$${product.price}")
 
-                // SOLO MUESTRA EL BOTÓN SI SE ENVÍA onAddToCart
-                if (onAddToCart != null) {
+                // SOLO CLIENTE → muestra botón agregar al carrito
+                if (!isAdmin && onAddToCart != null) {
                     Spacer(Modifier.height(8.dp))
                     Button(
                         onClick = { onAddToCart(product) },

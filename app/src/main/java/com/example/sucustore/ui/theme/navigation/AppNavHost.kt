@@ -4,7 +4,10 @@ import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -19,7 +22,6 @@ import com.example.sucustore.ui.theme.product.ProductScreen
 import com.example.sucustore.ui.theme.screens.*
 import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
-import com.example.sucustore.ui.theme.screens.auth.UserProfileScreen
 import com.example.sucustore.ui.theme.screens.order.OrderHistoryScreen
 import com.example.sucustore.viewmodel.AuthViewModel
 import com.example.sucustore.viewmodel.OrderViewModel
@@ -31,10 +33,13 @@ fun AppNavHost(
     navController: NavHostController,
     authViewModel: AuthViewModel
 ) {
-    val factory = SucuStoreViewModelFactory(LocalContext.current.applicationContext as Application)
+    val factory = SucuStoreViewModelFactory(
+        LocalContext.current.applicationContext as Application
+    )
 
     NavHost(navController = navController, startDestination = "splash") {
 
+        // SPLASH -----------------------------------------------------------
         composable("splash") {
             val currentUser by authViewModel.currentUser.collectAsState()
 
@@ -50,7 +55,7 @@ fun AppNavHost(
             })
         }
 
-        // LOGIN
+        // LOGIN ------------------------------------------------------------
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -68,11 +73,15 @@ fun AppNavHost(
             )
         }
 
-        // REGISTER
+        // REGISTER ---------------------------------------------------------
         composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
-                onLoginClick = { navController.navigate("login") { popUpTo(0) } },
+                onLoginClick = {
+                    navController.navigate("login") {
+                        popUpTo(0)
+                    }
+                },
                 onRegisterComplete = {
                     val user = authViewModel.currentUser.value
                     val route =
@@ -83,15 +92,18 @@ fun AppNavHost(
             )
         }
 
-        // RECOVER PASSWORD
+        // RECOVER PASSWORD -------------------------------------------------
         composable("recover_password") {
             RecoverPasswordScreen(
                 authViewModel = authViewModel,
-                onEmailVerified = { email -> navController.navigate("reset_password/$email") },
+                onEmailVerified = { email ->
+                    navController.navigate("reset_password/$email")
+                },
                 onBack = { navController.popBackStack() }
             )
         }
 
+        // RESET PASSWORD ---------------------------------------------------
         composable(
             "reset_password/{email}",
             arguments = listOf(navArgument("email") { type = NavType.StringType })
@@ -105,7 +117,7 @@ fun AppNavHost(
             )
         }
 
-        // LOADING
+        // LOADING ----------------------------------------------------------
         composable(
             "loading/{route}",
             arguments = listOf(navArgument("route") { type = NavType.StringType })
@@ -116,7 +128,7 @@ fun AppNavHost(
             )
         }
 
-        // ADMIN DASHBOARD
+        // ADMIN DASHBOARD --------------------------------------------------
         composable("admin_dashboard") {
             AdminDashboardScreen(
                 navController = navController,
@@ -127,7 +139,19 @@ fun AppNavHost(
             )
         }
 
-        // ADD PRODUCT
+        // ADMIN - HISTORIAL DE VENTAS -------------------------------------
+        composable("admin_orders") {
+            val orderViewModel: OrderViewModel = viewModel(factory = factory)
+
+            OrderHistoryScreen(
+                orderViewModel = orderViewModel,
+                isAdmin = true,
+                userId = 0, // para admin se ignora dentro de la pantalla
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ADD PRODUCT ------------------------------------------------------
         composable("add_product") {
             ProductFormScreen(
                 productViewModel = viewModel(factory = factory),
@@ -136,7 +160,7 @@ fun AppNavHost(
             )
         }
 
-        // EDIT PRODUCT
+        // EDIT PRODUCT -----------------------------------------------------
         composable(
             route = "edit_product/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
@@ -166,7 +190,7 @@ fun AppNavHost(
             }
         }
 
-        // CART
+        // CART -------------------------------------------------------------
         composable("cart") {
             CartScreen(
                 factory = factory,
@@ -177,7 +201,7 @@ fun AppNavHost(
             )
         }
 
-        // PRODUCT LIST
+        // PRODUCT LIST -----------------------------------------------------
         composable("products") {
             val currentUser by authViewModel.currentUser.collectAsState()
             val isAdmin = currentUser?.role?.name == "ADMIN"
@@ -201,7 +225,7 @@ fun AppNavHost(
             )
         }
 
-        // PRODUCT DETAIL
+        // PRODUCT DETAIL ---------------------------------------------------
         composable(
             "product_detail/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
@@ -228,27 +252,36 @@ fun AppNavHost(
             }
         }
 
-        // PERFIL
+        // PERFIL -----------------------------------------------------------
         composable("profile") {
             UserProfileScreen(
                 authViewModel = authViewModel,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onGoToOrders = { navController.navigate("orders") },
+                onLogout = {
+                    authViewModel.logout()
+                    navController.navigate("login") {
+                        popUpTo(0)
+                    }
+                }
             )
         }
 
-        // 📜 HISTORIAL DE COMPRAS (CLIENTE)
+        // HISTORIAL DE COMPRAS (CLIENTE y ADMIN) --------------------------
         composable("orders") {
             val currentUser by authViewModel.currentUser.collectAsState()
             val orderViewModel: OrderViewModel = viewModel(factory = factory)
 
+            val isAdmin = currentUser?.role?.name == "ADMIN"
+
             if (currentUser == null) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Debes iniciar sesión para ver tus pedidos.")
+                    Text("Debes iniciar sesión para ver los pedidos.")
                 }
             } else {
                 OrderHistoryScreen(
                     orderViewModel = orderViewModel,
-                    isAdmin = false,
+                    isAdmin = isAdmin,
                     userId = currentUser!!.id,
                     onBack = { navController.popBackStack() }
                 )

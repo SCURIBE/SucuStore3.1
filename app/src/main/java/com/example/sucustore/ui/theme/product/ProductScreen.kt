@@ -1,15 +1,13 @@
 package com.example.sucustore.ui.theme.product
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,6 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.sucustore.data.db.entity.Product
 import com.example.sucustore.viewmodel.AuthViewModel
+import com.example.sucustore.viewmodel.CartViewModel
 import com.example.sucustore.viewmodel.ProductViewModel
 import com.example.sucustore.viewmodel.SucuStoreViewModelFactory
 
@@ -34,37 +33,16 @@ fun ProductScreen(
     onBack: () -> Unit
 ) {
     val productViewModel: ProductViewModel = viewModel(factory = factory)
+    val cartViewModel: CartViewModel = viewModel(factory = factory)
+
     val products by productViewModel.products.collectAsState()
     val currentUser by authViewModel.currentUser.collectAsState()
     val isAdmin = currentUser?.role?.name == "ADMIN"
-    val searchText by productViewModel.searchText.collectAsState()
 
-    // Cargar productos al entrar a la pantalla
+    var searchText by remember { mutableStateOf("") }
+
     LaunchedEffect(Unit) {
         productViewModel.loadProducts()
-    }
-
-    var productToDelete by remember { mutableStateOf<Product?>(null) }
-
-    if (productToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { productToDelete = null },
-            title = { Text("Eliminar producto") },
-            text = { Text("¿Seguro que deseas eliminar \"${productToDelete?.name}\"?") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        productToDelete?.let { productViewModel.deleteProduct(it) }
-                        productToDelete = null
-                    }
-                ) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { productToDelete = null }) {
-                    Text("Cancelar")
-                }
-            }
-        )
     }
 
     Scaffold(
@@ -72,93 +50,98 @@ fun ProductScreen(
             TopAppBar(
                 title = {
                     Text(
-                        if (isAdmin) "Gestionar Productos"
-                        else "Bienvenido(a), ${currentUser?.name ?: ""}",
+                        text = if (isAdmin) "Gestionar productos" else "Catálogo de plantas",
                         fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            if (isAdmin)
-                                Icons.AutoMirrored.Filled.ArrowBack
-                            else
-                                Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = null
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
                         )
                     }
                 },
                 actions = {
-                    if (isAdmin) {
-                        IconButton(onClick = onAddNewProduct) {
-                            Icon(Icons.Default.Add, contentDescription = null)
+                    if (!isAdmin) {
+                        // Carrito
+                        IconButton(onClick = { navController.navigate("cart") }) {
+                            Icon(
+                                imageVector = Icons.Filled.ShoppingCart,
+                                contentDescription = "Ver carrito"
+                            )
                         }
-                    } else {
-                        // 🔗 Botón historial de compras (cliente)
+
+                        // Historial de pedidos
                         IconButton(onClick = { navController.navigate("orders") }) {
-                            Icon(Icons.Default.History, contentDescription = "Historial de compras")
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                                contentDescription = "Mis pedidos"
+                            )
                         }
-                    }
-                    IconButton(onClick = { navController.navigate("cart") }) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null)
+
+                        // Perfil de usuario
+                        IconButton(onClick = { navController.navigate("profile") }) {
+                            Icon(
+                                imageVector = Icons.Filled.Person,
+                                contentDescription = "Mi perfil"
+                            )
+                        }
                     }
                 }
             )
+        },
+        floatingActionButton = {
+            if (isAdmin) {
+                FloatingActionButton(onClick = onAddNewProduct) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = "Añadir producto"
+                    )
+                }
+            }
         }
-    ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
+    ) { padding ->
 
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .padding(16.dp)
+                .fillMaxSize()
+        ) {
             OutlinedTextField(
                 value = searchText,
-                onValueChange = productViewModel::onSearchTextChange,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Buscar producto...") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                }
+                onValueChange = { searchText = it },
+                label = { Text("Buscar planta") },
+                modifier = Modifier.fillMaxWidth()
             )
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(products) { product ->
-                    Column {
+            Spacer(Modifier.height(16.dp))
+
+            val filteredProducts = products.filter { product ->
+                searchText.isBlank() ||
+                        product.name.contains(searchText, ignoreCase = true) ||
+                        product.description.contains(searchText, ignoreCase = true)
+            }
+
+            if (filteredProducts.isEmpty()) {
+                Text("No se encontraron productos con ese criterio.")
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(filteredProducts) { product ->
                         ProductCard(
                             product = product,
-                            onProductClick = {
-                                if (isAdmin) {
-                                    navController.navigate("edit_product/${product.id}")
-                                } else {
-                                    onProductClick(product)
+                            onProductClick = { onProductClick(product) },
+                            onAddToCart = if (isAdmin) null else { p ->
+                                currentUser?.let { user ->
+                                    cartViewModel.addToCart(
+                                        userId = user.id,
+                                        productId = p.id,
+                                        quantity = 1
+                                    )
                                 }
                             }
                         )
-
-                        if (isAdmin) {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                OutlinedButton(
-                                    modifier = Modifier.weight(1f),
-                                    onClick = {
-                                        navController.navigate("edit_product/${product.id}")
-                                    }
-                                ) { Text("Editar") }
-
-                                OutlinedButton(
-                                    modifier = Modifier.weight(1f),
-                                    onClick = { productToDelete = product }
-                                ) { Text("Eliminar") }
-                            }
-                        }
                     }
                 }
             }

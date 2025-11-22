@@ -18,13 +18,13 @@ import androidx.navigation.NavController
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminDashboardScreen(
-    navController: NavController, 
+    navController: NavController,
     onLogout: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Panel de Administración", fontWeight = FontWeight.Bold) },
+                title = { Text("Panel de administración", fontWeight = FontWeight.Bold) },
                 actions = {
                     IconButton(onClick = onLogout) {
                         Icon(
@@ -45,14 +45,14 @@ fun AdminDashboardScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Bienvenido Administrador 🌿",
+                text = "Bienvenido administrador 🌿",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.SemiBold
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Botón para gestionar productos existentes
+            // Gestionar productos existentes
             Button(
                 onClick = { navController.navigate("products") },
                 modifier = Modifier
@@ -61,31 +61,34 @@ fun AdminDashboardScreen(
             ) {
                 Icon(Icons.Default.Inventory, contentDescription = "Productos")
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Gestionar Productos")
+                Text("Gestionar productos")
             }
 
-            // Botón para ver pedidos
+            // Historial de ventas (todas las órdenes)
             Button(
-                onClick = { navController.navigate("orders") },
+                onClick = { navController.navigate("admin_orders") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
             ) {
-                Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = "Pedidos")
+                Icon(
+                    Icons.AutoMirrored.Filled.ReceiptLong,
+                    contentDescription = "Historial de ventas"
+                )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Ver Pedidos")
+                Text("Historial de ventas")
             }
 
-            // ¡¡CORREGIDO!! Se cambia OutlinedButton por Button para que sea sólido.
+            // Añadir nuevo producto
             Button(
                 onClick = { navController.navigate("add_product") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar Producto")
+                Icon(Icons.Default.Add, contentDescription = "Agregar producto")
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Añadir Producto")
+                Text("Añadir producto")
             }
         }
     }
