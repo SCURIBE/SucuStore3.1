@@ -95,21 +95,8 @@ fun CheckoutScreen(navController: NavController) {
                 onClick = {
                     // Aquí iría la lógica real de pago + guardar orden + vaciar carrito
 
-                    // Vibración suave al completar el pago
-                    val vibrator =
-                        context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        vibrator.vibrate(
-                            VibrationEffect.createOneShot(
-                                150L, // 0,15 segundos
-                                VibrationEffect.DEFAULT_AMPLITUDE
-                            )
-                        )
-                    } else {
-                        @Suppress("DEPRECATION")
-                        vibrator.vibrate(150L)
-                    }
+                    // Vibración de éxito tipo "doble pulso"
+                    vibrateSuccess(context)
 
                     // Volver al catálogo
                     navController.navigate("products") {
@@ -123,5 +110,26 @@ fun CheckoutScreen(navController: NavController) {
                 Text("Pagar")
             }
         }
+    }
+}
+
+// 👉 Helper reutilizable para vibración “pro”
+private fun vibrateSuccess(context: Context) {
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator ?: return
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        // Patrón: espera 0ms, vibra 80ms, pausa 50ms, vibra 120ms
+        val timings = longArrayOf(0, 80, 50, 120)
+        val amplitudes = intArrayOf(
+            0,
+            VibrationEffect.DEFAULT_AMPLITUDE,
+            0,
+            VibrationEffect.DEFAULT_AMPLITUDE
+        )
+        val effect = VibrationEffect.createWaveform(timings, amplitudes, -1)
+        vibrator.vibrate(effect)
+    } else {
+        @Suppress("DEPRECATION")
+        vibrator.vibrate(150L)
     }
 }

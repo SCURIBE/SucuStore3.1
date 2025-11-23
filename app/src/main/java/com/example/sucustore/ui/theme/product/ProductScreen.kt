@@ -41,6 +41,10 @@ fun ProductScreen(
 
     var searchText by remember { mutableStateOf("") }
 
+    // estado para confirmar eliminación (solo admin)
+    var productToDelete by remember { mutableStateOf<Product?>(null) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         productViewModel.loadProducts()
     }
@@ -55,7 +59,7 @@ fun ProductScreen(
                     )
                 },
                 navigationIcon = {
-                    // 👉 Solo el ADMIN ve la flecha atrás
+                    // Solo el ADMIN ve la flecha atrás
                     if (isAdmin) {
                         IconButton(onClick = onBack) {
                             Icon(
@@ -132,17 +136,70 @@ fun ProductScreen(
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(filteredProducts) { product ->
-                        ProductCard(
-                            product = product,
-                            onProductClick = { onProductClick(product) },
-                            onAddToCart = if (isAdmin) null else { p ->
-                                // 👉 Ahora el botón verde abre el detalle
-                                onProductClick(p)
-                            }
-                        )
+
+                        if (isAdmin) {
+                            // VISTA ADMIN: card con menú ⋮ (editar / eliminar)
+                            ProductCard(
+                                product = product,
+                                onProductClick = { onProductClick(product) }, // tocar la card también edita
+                                isAdmin = true,
+                                onEditClick = { onProductClick(product) },
+                                onDeleteClick = { p ->
+                                    productToDelete = p
+                                    showDeleteDialog = true
+                                }
+                            )
+                        } else {
+                            // VISTA CLIENTE: card simple, botón verde abre detalle
+                            ProductCard(
+                                product = product,
+                                onProductClick = { onProductClick(product) },
+                                onAddToCart = { p ->
+                                    // Abrimos detalle para elegir cantidad
+                                    onProductClick(p)
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    // ─────────────────────────────────────────
+    // DIÁLOGO DE CONFIRMACIÓN ELIMINAR (ADMIN)
+    // ─────────────────────────────────────────
+    if (showDeleteDialog && productToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteDialog = false
+                productToDelete = null
+            },
+            title = { Text("Eliminar producto") },
+            text = {
+                Text("¿Seguro que quieres eliminar \"${productToDelete!!.name}\" del catálogo?")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        productToDelete?.let { productViewModel.deleteProduct(it) }
+                        showDeleteDialog = false
+                        productToDelete = null
+                    }
+                ) {
+                    Text("Eliminar", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        productToDelete = null
+                    }
+                ) {
+                    Text("Cancelar")
+                }
+            }
+        )
     }
 }

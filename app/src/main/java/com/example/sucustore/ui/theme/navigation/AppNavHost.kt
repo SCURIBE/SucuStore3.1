@@ -4,10 +4,7 @@ import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,10 +20,7 @@ import com.example.sucustore.ui.theme.screens.*
 import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
 import com.example.sucustore.ui.theme.screens.order.OrderHistoryScreen
-import com.example.sucustore.viewmodel.AuthViewModel
-import com.example.sucustore.viewmodel.OrderViewModel
-import com.example.sucustore.viewmodel.ProductViewModel
-import com.example.sucustore.viewmodel.SucuStoreViewModelFactory
+import com.example.sucustore.viewmodel.*
 
 @Composable
 fun AppNavHost(
@@ -39,7 +33,7 @@ fun AppNavHost(
 
     NavHost(navController = navController, startDestination = "splash") {
 
-        // SPLASH -----------------------------------------------------------
+        // -------------------- SPLASH --------------------
         composable("splash") {
             val currentUser by authViewModel.currentUser.collectAsState()
 
@@ -55,7 +49,7 @@ fun AppNavHost(
             })
         }
 
-        // LOGIN ------------------------------------------------------------
+        // -------------------- LOGIN --------------------
         composable("login") {
             LoginScreen(
                 authViewModel = authViewModel,
@@ -68,31 +62,29 @@ fun AppNavHost(
                         "CLIENT" -> "products"
                         else -> "login"
                     }
-                    navController.navigate("loading/$route") { popUpTo(0) }
+                    navController.navigate(route) { popUpTo(0) }
                 }
             )
         }
 
-        // REGISTER ---------------------------------------------------------
+        // -------------------- REGISTER --------------------
         composable("register") {
             RegisterScreen(
                 authViewModel = authViewModel,
                 onLoginClick = {
-                    navController.navigate("login") {
-                        popUpTo(0)
-                    }
+                    navController.navigate("login") { popUpTo(0) }
                 },
                 onRegisterComplete = {
                     val user = authViewModel.currentUser.value
                     val route =
                         if (user?.role?.name == "ADMIN") "admin_dashboard" else "products"
 
-                    navController.navigate("loading/$route") { popUpTo(0) }
+                    navController.navigate(route) { popUpTo(0) }
                 }
             )
         }
 
-        // RECOVER PASSWORD -------------------------------------------------
+        // -------------------- RECOVER / RESET PASSWORD --------------------
         composable("recover_password") {
             RecoverPasswordScreen(
                 authViewModel = authViewModel,
@@ -103,7 +95,6 @@ fun AppNavHost(
             )
         }
 
-        // RESET PASSWORD ---------------------------------------------------
         composable(
             "reset_password/{email}",
             arguments = listOf(navArgument("email") { type = NavType.StringType })
@@ -117,18 +108,7 @@ fun AppNavHost(
             )
         }
 
-        // LOADING ----------------------------------------------------------
-        composable(
-            "loading/{route}",
-            arguments = listOf(navArgument("route") { type = NavType.StringType })
-        ) {
-            LoadingScreen(
-                navController = navController,
-                route = it.arguments?.getString("route")!!
-            )
-        }
-
-        // ADMIN DASHBOARD --------------------------------------------------
+        // -------------------- ADMIN DASHBOARD --------------------
         composable("admin_dashboard") {
             AdminDashboardScreen(
                 navController = navController,
@@ -139,19 +119,43 @@ fun AppNavHost(
             )
         }
 
-        // ADMIN - HISTORIAL DE VENTAS -------------------------------------
+        // -------------------- ADMIN ORDERS --------------------
         composable("admin_orders") {
             val orderViewModel: OrderViewModel = viewModel(factory = factory)
 
             OrderHistoryScreen(
                 orderViewModel = orderViewModel,
                 isAdmin = true,
-                userId = 0, // para admin se ignora dentro de la pantalla
+                userId = 0,
                 onBack = { navController.popBackStack() }
             )
         }
 
-        // ADD PRODUCT ------------------------------------------------------
+        // -------------------- PRODUCTS --------------------
+        composable("products") {
+            val currentUser by authViewModel.currentUser.collectAsState()
+            val isAdmin = currentUser?.role?.name == "ADMIN"
+
+            ProductScreen(
+                factory = factory,
+                authViewModel = authViewModel,
+                navController = navController,
+                onProductClick = { product ->
+                    if (isAdmin) navController.navigate("edit_product/${product.id}")
+                    else navController.navigate("product_detail/${product.id}")
+                },
+                onAddNewProduct = { navController.navigate("add_product") },
+                onBack = {
+                    if (isAdmin) navController.popBackStack()
+                    else {
+                        authViewModel.logout()
+                        navController.navigate("login") { popUpTo(0) }
+                    }
+                }
+            )
+        }
+
+        // -------------------- ADD PRODUCT --------------------
         composable("add_product") {
             ProductFormScreen(
                 productViewModel = viewModel(factory = factory),
@@ -160,7 +164,7 @@ fun AppNavHost(
             )
         }
 
-        // EDIT PRODUCT -----------------------------------------------------
+        // -------------------- EDIT PRODUCT --------------------
         composable(
             route = "edit_product/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
@@ -190,44 +194,9 @@ fun AppNavHost(
             }
         }
 
-        // CART -------------------------------------------------------------
-        composable("cart") {
-            CartScreen(
-                factory = factory,
-                onBack = { navController.popBackStack() },
-                onCheckoutComplete = {
-                    navController.navigate("products") { popUpTo(0) }
-                }
-            )
-        }
-
-        // PRODUCT LIST -----------------------------------------------------
-        composable("products") {
-            val currentUser by authViewModel.currentUser.collectAsState()
-            val isAdmin = currentUser?.role?.name == "ADMIN"
-
-            ProductScreen(
-                factory = factory,
-                authViewModel = authViewModel,
-                navController = navController,
-                onProductClick = { product ->
-                    if (isAdmin) navController.navigate("edit_product/${product.id}")
-                    else navController.navigate("product_detail/${product.id}")
-                },
-                onAddNewProduct = { navController.navigate("add_product") },
-                onBack = {
-                    if (isAdmin) navController.popBackStack()
-                    else {
-                        authViewModel.logout()
-                        navController.navigate("login") { popUpTo(0) }
-                    }
-                }
-            )
-        }
-
-        // PRODUCT DETAIL ---------------------------------------------------
+        // -------------------- PRODUCT DETAIL --------------------
         composable(
-            "product_detail/{productId}",
+            route = "product_detail/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.IntType })
         ) { entry ->
             val productId = entry.arguments?.getInt("productId")
@@ -252,22 +221,18 @@ fun AppNavHost(
             }
         }
 
-        // PERFIL -----------------------------------------------------------
-        composable("profile") {
-            UserProfileScreen(
-                authViewModel = authViewModel,
+        // -------------------- CART --------------------
+        composable("cart") {
+            CartScreen(
+                factory = factory,
                 onBack = { navController.popBackStack() },
-                onGoToOrders = { navController.navigate("orders") },
-                onLogout = {
-                    authViewModel.logout()
-                    navController.navigate("login") {
-                        popUpTo(0)
-                    }
+                onCheckoutComplete = {
+                    navController.navigate("products") { popUpTo(0) }
                 }
             )
         }
 
-        // HISTORIAL DE COMPRAS (CLIENTE y ADMIN) --------------------------
+        // -------------------- ORDERS (CLIENT) --------------------
         composable("orders") {
             val currentUser by authViewModel.currentUser.collectAsState()
             val orderViewModel: OrderViewModel = viewModel(factory = factory)
@@ -286,6 +251,19 @@ fun AppNavHost(
                     onBack = { navController.popBackStack() }
                 )
             }
+        }
+
+        // -------------------- PROFILE --------------------
+        composable("profile") {
+            UserProfileScreen(
+                authViewModel = authViewModel,
+                onBack = { navController.popBackStack() },
+                onGoToOrders = { navController.navigate("orders") },
+                onLogout = {
+                    authViewModel.logout()
+                    navController.navigate("login") { popUpTo(0) }
+                }
+            )
         }
     }
 }
