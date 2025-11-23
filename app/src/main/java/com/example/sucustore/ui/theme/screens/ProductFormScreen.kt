@@ -87,7 +87,7 @@ fun ProductFormScreen(
         }
     }
 
-    // 🖼️ NUEVO: launcher para seleccionar imagen desde la galería
+    // 🖼️ launcher para seleccionar imagen desde la galería
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -237,7 +237,7 @@ fun ProductFormScreen(
 
                 Spacer(Modifier.height(8.dp))
 
-                // 🖼️ NUEVO: BOTÓN FOTO DESDE GALERÍA
+                // BOTÓN FOTO DESDE GALERÍA
                 Button(onClick = {
                     galleryLauncher.launch("image/*")
                 }) {
@@ -251,59 +251,86 @@ fun ProductFormScreen(
                     onClick = {
                         var valid = true
 
-                        // Validar nombre
+                        // Limpio nombre y descripción para validar
+                        val trimmedName = name.trim()
+                        val trimmedDesc = description.trim()
+
+                        // Normalizo el precio para soportar coma o punto
+                        val priceValue = price.replace(",", ".")
+                        val parsedPrice = priceValue.toDoubleOrNull()
+                        val parsedStock = stock.toIntOrNull()
+
+                        // ✅ Validar nombre
                         nameError = when {
-                            name.isBlank() -> "El nombre es obligatorio"
-                            !Regex("^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$").matches(name) ->
+                            trimmedName.isBlank() ->
+                                "El nombre es obligatorio"
+                            !Regex("^[A-Za-zÁÉÍÓÚáéíóúÑñ ]+$").matches(trimmedName) ->
                                 "Solo se permiten letras y espacios"
-                            name.trim().length < 3 ->
+                            trimmedName.length < 3 ->
                                 "El nombre es demasiado corto"
+                            trimmedName.length > 40 ->
+                                "El nombre es demasiado largo"
                             else -> null
                         }
                         if (nameError != null) valid = false
 
-                        // Validar precio
+                        // ✅ Validar precio
                         priceError = when {
-                            price.isBlank() -> "El precio es obligatorio"
-                            price.toDoubleOrNull() == null -> "Debe ser un número válido"
-                            price.toDouble() <= 0.0 -> "Debe ser mayor a 0"
+                            priceValue.isBlank() ->
+                                "El precio es obligatorio"
+                            parsedPrice == null ->
+                                "Debe ser un número válido"
+                            parsedPrice <= 0.0 ->
+                                "Debe ser mayor a 0"
+                            parsedPrice > 1_000_000 ->
+                                "El precio es demasiado alto"
                             else -> null
                         }
                         if (priceError != null) valid = false
 
-                        // Validar stock
+                        // ✅ Validar stock
                         stockError = when {
-                            stock.isBlank() -> "El stock es obligatorio"
-                            stock.toIntOrNull() == null -> "Debe ser un número válido"
-                            stock.toInt() < 0 -> "El stock no puede ser negativo"
+                            stock.isBlank() ->
+                                "El stock es obligatorio"
+                            parsedStock == null ->
+                                "Debe ser un número válido"
+                            parsedStock < 0 ->
+                                "El stock no puede ser negativo"
+                            parsedStock > 10_000 ->
+                                "El stock es demasiado alto"
                             else -> null
                         }
                         if (stockError != null) valid = false
 
-                        // Validar descripción
+                        // ✅ Validar descripción
                         descriptionError = when {
-                            description.isBlank() -> "La descripción es obligatoria"
-                            description.trim().length < 10 ->
+                            trimmedDesc.isBlank() ->
+                                "La descripción es obligatoria"
+                            trimmedDesc.length < 10 ->
                                 "Mínimo 10 caracteres"
+                            trimmedDesc.length > 300 ->
+                                "La descripción es demasiado larga"
                             else -> null
                         }
                         if (descriptionError != null) valid = false
 
-                        // Validar imagen
+                        // ✅ Validar imagen
                         if (imageUri == null) {
                             imageError = "La foto de la planta es obligatoria"
                             valid = false
+                        } else {
+                            imageError = null
                         }
 
                         if (!valid) return@Button
 
-                        // Guardar producto
+                        // Guardar producto con valores ya limpios
                         val product = Product(
                             id = existingProduct?.id ?: 0,
-                            name = name.trim(),
-                            price = price.toDouble(),
-                            description = description.trim(),
-                            stock = stock.toInt(),
+                            name = trimmedName,
+                            price = parsedPrice!!,
+                            description = trimmedDesc,
+                            stock = parsedStock!!,
                             imageUri = imageUri?.toString()
                         )
 
