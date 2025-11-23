@@ -4,10 +4,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.sucustore.data.db.entity.Product
@@ -40,6 +44,9 @@ fun ProductDetailScreen(
     )
     val scope = rememberCoroutineScope()
 
+    // ✅ NUEVO: cantidad seleccionada
+    var quantity by remember { mutableStateOf(1) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -62,14 +69,58 @@ fun ProductDetailScreen(
                 .fillMaxSize(),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // =================== INFO PRODUCTO ===================
             Column {
                 Text(product.name, style = MaterialTheme.typography.headlineSmall)
                 Spacer(Modifier.height(8.dp))
                 Text("💰 Precio: \$${product.price}")
                 Spacer(Modifier.height(8.dp))
                 Text("📦 Descripción: ${product.description}")
+
+                Spacer(Modifier.height(24.dp))
+
+                // =================== CANTIDAD ===================
+                Text(
+                    text = "Cantidad",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.height(8.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = {
+                            if (quantity > 1) quantity -= 1
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Remove,
+                            contentDescription = "Restar"
+                        )
+                    }
+
+                    Text(
+                        text = quantity.toString(),
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+
+                    IconButton(
+                        onClick = {
+                            quantity += 1
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "Sumar"
+                        )
+                    }
+                }
             }
 
+            // =================== ACCIONES ===================
             Column {
                 if (currentUser == null) {
                     Text(
@@ -77,6 +128,8 @@ fun ProductDetailScreen(
                         color = MaterialTheme.colorScheme.error
                     )
                 } else {
+
+                    // ---------- AGREGAR AL CARRITO ----------
                     if (!addedToCart) {
                         Button(
                             onClick = {
@@ -85,14 +138,18 @@ fun ProductDetailScreen(
                                     delay(150)
                                     clicked = false
                                 }
-                                cartViewModel.addToCart(currentUser!!.id, product.id, 1)
+                                cartViewModel.addToCart(
+                                    userId = currentUser!!.id,
+                                    productId = product.id,
+                                    quantity = quantity    // ✅ usa cantidad seleccionada
+                                )
                                 addedToCart = true
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .scale(scale)
                         ) {
-                            Text("Agregar al carrito 🛒")
+                            Text("Agregar $quantity al carrito 🛒")
                         }
                     } else {
                         Button(
@@ -105,12 +162,14 @@ fun ProductDetailScreen(
 
                     Spacer(Modifier.height(12.dp))
 
+                    // ---------- COMPRAR AHORA ----------
                     Button(
                         onClick = {
+                            val total = product.price * quantity
                             orderViewModel.createOrder(
                                 userId = currentUser!!.id,
-                                total = product.price,
-                                details = "1 x ${product.name}"
+                                total = total,
+                                details = "$quantity x ${product.name}"   // ✅ detalle correcto
                             )
                             onGoToCart()
                         },

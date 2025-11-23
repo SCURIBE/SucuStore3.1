@@ -20,4 +20,9 @@ class CartRepository(private val cartDao: CartDao) {
     suspend fun clearCart(userId: Int) {
         cartDao.clearCart(userId)
     }
+    // NUEVO: actualizar ítem sin duplicarlo
+    suspend fun updateCartItem(item: CartItem) {
+        cartDao.update(item)
+    }
+
 }

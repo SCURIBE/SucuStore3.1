@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.example.sucustore.data.db.entity.CartItem
 
 @Dao
@@ -20,4 +21,8 @@ interface CartDao {
 
     @Query("DELETE FROM cart WHERE userId = :userId")
     suspend fun clearCart(userId: Int)
+
+    // ✅ NUEVO — necesario para no duplicar ítems
+    @Update
+    suspend fun update(cartItem: CartItem)
 }

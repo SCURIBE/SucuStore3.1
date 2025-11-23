@@ -55,11 +55,14 @@ fun ProductScreen(
                     )
                 },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
-                        )
+                    // 👉 Solo el ADMIN ve la flecha atrás
+                    if (isAdmin) {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Volver"
+                            )
+                        }
                     }
                 },
                 actions = {
@@ -133,13 +136,8 @@ fun ProductScreen(
                             product = product,
                             onProductClick = { onProductClick(product) },
                             onAddToCart = if (isAdmin) null else { p ->
-                                currentUser?.let { user ->
-                                    cartViewModel.addToCart(
-                                        userId = user.id,
-                                        productId = p.id,
-                                        quantity = 1
-                                    )
-                                }
+                                // 👉 Ahora el botón verde abre el detalle
+                                onProductClick(p)
                             }
                         )
                     }

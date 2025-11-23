@@ -81,14 +81,19 @@ fun ProductCard(
 
                 Text("\$${product.price}")
 
-                // SOLO CLIENTE → muestra botón agregar al carrito
+                // SOLO CLIENTE → muestra botón
                 if (!isAdmin && onAddToCart != null) {
                     Spacer(Modifier.height(8.dp))
+
                     Button(
-                        onClick = { onAddToCart(product) },
+                        // 🔥 CAMBIO IMPORTANTE:
+                        // YA NO agregamos directo al carrito
+                        // Ahora abrimos el detalle del producto
+                        onClick = { onProductClick(product) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("Agregar al carrito")
+                        // 🔥 Nuevo texto profesional:
+                        Text("Ver detalle y añadir")
                     }
                 }
             }
