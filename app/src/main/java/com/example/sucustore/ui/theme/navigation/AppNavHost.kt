@@ -21,6 +21,7 @@ import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
 import com.example.sucustore.ui.theme.screens.order.OrderHistoryScreen
 import com.example.sucustore.viewmodel.*
+import com.example.sucustore.ui.theme.screens.remote.RemotePostsScreen
 
 @Composable
 fun AppNavHost(
@@ -253,12 +254,20 @@ fun AppNavHost(
             }
         }
 
+        // -------------------- 🌐 REMOTE POSTS (API EXTERNA) --------------------
+        composable("remote_posts") {
+            RemotePostsScreen(
+                onBack = { navController.popBackStack() }
+            )
+        }
+
         // -------------------- PROFILE --------------------
         composable("profile") {
             UserProfileScreen(
                 authViewModel = authViewModel,
                 onBack = { navController.popBackStack() },
                 onGoToOrders = { navController.navigate("orders") },
+                onGoToExternalApi = { navController.navigate("remote_posts") },
                 onLogout = {
                     authViewModel.logout()
                     navController.navigate("login") { popUpTo(0) }

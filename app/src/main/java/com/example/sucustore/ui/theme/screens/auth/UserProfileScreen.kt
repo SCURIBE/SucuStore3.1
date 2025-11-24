@@ -47,14 +47,13 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 
-
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileScreen(
     authViewModel: AuthViewModel,
     onBack: () -> Unit,
     onGoToOrders: () -> Unit,
+    onGoToExternalApi: () -> Unit,   // 👈 NUEVO
     onLogout: () -> Unit
 ) {
     val currentUser by authViewModel.currentUser.collectAsState()
@@ -122,7 +121,7 @@ fun UserProfileScreen(
     var showSourceDialog by remember { mutableStateOf(false) }
     var showConfirmPhotoDialog by remember { mutableStateOf(false) }
 
-// --------- LAUNCHERS PARA GALERÍA Y SELFIE ---------
+    // --------- LAUNCHERS PARA GALERÍA Y SELFIE ---------
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -151,8 +150,6 @@ fun UserProfileScreen(
             selfieLauncher.launch(null)
         }
     }
-
-
 
     // --------- DIÁLOGO: SELECCIONAR ORIGEN DE FOTO ---------
     if (showSourceDialog) {
@@ -434,6 +431,17 @@ fun UserProfileScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Ver historial de pedidos 🧾")
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            // ⭐ BOTÓN API EXTERNA
+            Button(
+                onClick = onGoToExternalApi,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                (Text("🌿 Tips y noticias de jardinería", style = MaterialTheme.typography.headlineSmall)
+                )
             }
 
             Spacer(Modifier.height(12.dp))

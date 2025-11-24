@@ -57,9 +57,6 @@ dependencies {
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("com.github.yalantis:ucrop:2.2.8")
-
-    // ¡¡LA DEPENDENCIA QUE FALTABA PARA LOS ICONOS!!
-    // AÑADE ESTA EN SU LUGAR
     implementation("androidx.compose.material:material-icons-extended:1.6.7")
 
 
@@ -76,6 +73,11 @@ dependencies {
 
     // Lottie
     implementation("com.airbnb.android:lottie-compose:6.4.0")
+
+    // Retrofit + Gson + Logging
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     // Test
     testImplementation("junit:junit:4.13.2")
