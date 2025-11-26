@@ -21,7 +21,8 @@ import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
 import com.example.sucustore.ui.theme.screens.order.OrderHistoryScreen
 import com.example.sucustore.ui.theme.screens.remote.RemotePostsScreen
-import com.example.sucustore.ui.theme.screens.checkout.CheckoutScreen   // 👈 IMPORT NUEVO
+import com.example.sucustore.ui.theme.screens.checkout.CheckoutScreen
+import com.example.sucustore.ui.theme.screens.remote.RemoteProductsScreen
 import com.example.sucustore.viewmodel.*
 
 @Composable
@@ -224,14 +225,12 @@ fun AppNavHost(
             }
         }
 
-
         // -------------------- CART --------------------
         composable("cart") {
             CartScreen(
                 factory = factory,
                 onBack = { navController.popBackStack() },
                 onCheckoutComplete = {
-                    // 👇 AHORA VA A CHECKOUT, NO A PRODUCTS
                     navController.navigate("checkout")
                 }
             )
@@ -281,6 +280,13 @@ fun AppNavHost(
                     authViewModel.logout()
                     navController.navigate("login") { popUpTo(0) }
                 }
+            )
+        }
+
+        // -------------------- REMOTE PRODUCTS (SPRING BOOT) --------------------
+        composable("remote_products") {
+            RemoteProductsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

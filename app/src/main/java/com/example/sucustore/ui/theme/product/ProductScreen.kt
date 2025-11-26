@@ -1,3 +1,4 @@
+// ProductScreen.kt
 package com.example.sucustore.ui.theme.product
 
 import androidx.compose.foundation.layout.*
@@ -41,7 +42,6 @@ fun ProductScreen(
 
     var searchText by remember { mutableStateOf("") }
 
-    // estado para confirmar eliminación (solo admin)
     var productToDelete by remember { mutableStateOf<Product?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -59,7 +59,6 @@ fun ProductScreen(
                     )
                 },
                 navigationIcon = {
-                    // Solo el ADMIN ve la flecha atrás
                     if (isAdmin) {
                         IconButton(onClick = onBack) {
                             Icon(
@@ -71,7 +70,6 @@ fun ProductScreen(
                 },
                 actions = {
                     if (!isAdmin) {
-                        // Carrito
                         IconButton(onClick = { navController.navigate("cart") }) {
                             Icon(
                                 imageVector = Icons.Filled.ShoppingCart,
@@ -79,7 +77,6 @@ fun ProductScreen(
                             )
                         }
 
-                        // Historial de pedidos
                         IconButton(onClick = { navController.navigate("orders") }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
@@ -87,7 +84,6 @@ fun ProductScreen(
                             )
                         }
 
-                        // Perfil de usuario
                         IconButton(onClick = { navController.navigate("profile") }) {
                             Icon(
                                 imageVector = Icons.Filled.Person,
@@ -125,6 +121,19 @@ fun ProductScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            if (isAdmin) {
+                Button(
+                    onClick = { navController.navigate("remote_products") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                ) {
+                    Text("Ver productos desde backend (Spring Boot)")
+                }
+
+                Spacer(Modifier.height(8.dp))
+            }
+
             val filteredProducts = products.filter { product ->
                 searchText.isBlank() ||
                         product.name.contains(searchText, ignoreCase = true) ||
@@ -138,10 +147,9 @@ fun ProductScreen(
                     items(filteredProducts) { product ->
 
                         if (isAdmin) {
-                            // VISTA ADMIN: card con menú ⋮ (editar / eliminar)
                             ProductCard(
                                 product = product,
-                                onProductClick = { onProductClick(product) }, // tocar la card también edita
+                                onProductClick = { onProductClick(product) },
                                 isAdmin = true,
                                 onEditClick = { onProductClick(product) },
                                 onDeleteClick = { p ->
@@ -150,12 +158,10 @@ fun ProductScreen(
                                 }
                             )
                         } else {
-                            // VISTA CLIENTE: card simple, botón verde abre detalle
                             ProductCard(
                                 product = product,
                                 onProductClick = { onProductClick(product) },
                                 onAddToCart = { p ->
-                                    // Abrimos detalle para elegir cantidad
                                     onProductClick(p)
                                 }
                             )
@@ -166,9 +172,6 @@ fun ProductScreen(
         }
     }
 
-    // ─────────────────────────────────────────
-    // DIÁLOGO DE CONFIRMACIÓN ELIMINAR (ADMIN)
-    // ─────────────────────────────────────────
     if (showDeleteDialog && productToDelete != null) {
         AlertDialog(
             onDismissRequest = {

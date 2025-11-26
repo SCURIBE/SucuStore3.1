@@ -1,14 +1,13 @@
 package com.example.sucustore.data.remote
 
-
 import com.example.sucustore.data.remote.api.JsonPlaceholderApi
-import com.example.sucustore.data.remote.dto.PostDto
+import com.example.sucustore.data.remote.ApiClient
 
 class RemoteRepository {
 
-    private val api = ApiClient.create(JsonPlaceholderApi::class.java)
+    // ✅ Usamos la propiedad que ya define ApiClient
+    private val api: JsonPlaceholderApi = ApiClient.jsonPlaceholderApi
 
-    suspend fun getPosts(): List<PostDto> {
-        return api.getPosts()
-    }
+    // GET /posts desde JSONPlaceholder (tips externos)
+    suspend fun getPosts() = api.getPosts()
 }

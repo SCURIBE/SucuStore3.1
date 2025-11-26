@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <!-- Permisos para galería -->
     <!-- Android 13+ -->
@@ -17,12 +18,10 @@
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
-    <!-- Indicar que la app puede usar cámara, pero no es obligatoria -->
+    <!-- Indicar que la cámara NO es obligatoria -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
-    <uses-permission android:name="android.permission.VIBRATE" />
-
 
     <application
         android:name=".SucuStoreApp"
@@ -31,7 +30,8 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.DayNight.NoActionBar">
+        android:theme="@style/Theme.Material3.DayNight.NoActionBar"
+        android:usesCleartextTraffic="true">   <!-- 🔥 ESTA ES LA CLAVE -->
 
         <activity
             android:name=".MainActivity"
