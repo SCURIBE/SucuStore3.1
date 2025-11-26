@@ -170,6 +170,7 @@ fun CartScreen(
 
                     vibrateSuccess(context)
 
+                    // 👇 AHORA SOLO AVISA AL NAVHOST
                     onCheckoutComplete()
                 },
                 modifier = Modifier.fillMaxWidth()

@@ -20,8 +20,9 @@ import com.example.sucustore.ui.theme.screens.*
 import com.example.sucustore.ui.theme.screens.auth.*
 import com.example.sucustore.ui.theme.screens.cart.CartScreen
 import com.example.sucustore.ui.theme.screens.order.OrderHistoryScreen
-import com.example.sucustore.viewmodel.*
 import com.example.sucustore.ui.theme.screens.remote.RemotePostsScreen
+import com.example.sucustore.ui.theme.screens.checkout.CheckoutScreen   // 👈 IMPORT NUEVO
+import com.example.sucustore.viewmodel.*
 
 @Composable
 fun AppNavHost(
@@ -213,7 +214,8 @@ fun AppNavHost(
                     product = product,
                     factory = factory,
                     onBack = { navController.popBackStack() },
-                    onGoToCart = { navController.navigate("cart") }
+                    onGoToCart = { navController.navigate("cart") },
+                    onGoToCheckout = { navController.navigate("checkout") }
                 )
             } else {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -222,15 +224,22 @@ fun AppNavHost(
             }
         }
 
+
         // -------------------- CART --------------------
         composable("cart") {
             CartScreen(
                 factory = factory,
                 onBack = { navController.popBackStack() },
                 onCheckoutComplete = {
-                    navController.navigate("products") { popUpTo(0) }
+                    // 👇 AHORA VA A CHECKOUT, NO A PRODUCTS
+                    navController.navigate("checkout")
                 }
             )
+        }
+
+        // -------------------- CHECKOUT --------------------
+        composable("checkout") {
+            CheckoutScreen(navController = navController)
         }
 
         // -------------------- ORDERS (CLIENT) --------------------

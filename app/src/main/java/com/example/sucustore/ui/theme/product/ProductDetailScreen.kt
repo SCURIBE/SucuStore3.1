@@ -28,7 +28,8 @@ fun ProductDetailScreen(
     product: Product,
     onBack: () -> Unit = {},
     onGoToCart: () -> Unit = {},
-    factory: SucuStoreViewModelFactory
+    factory: SucuStoreViewModelFactory,
+    onGoToCheckout: () -> Unit = {}   // ✅ NUEVO
 ) {
     val cartViewModel: CartViewModel = viewModel(factory = factory)
     val authViewModel: AuthViewModel = viewModel(factory = factory)
@@ -44,7 +45,7 @@ fun ProductDetailScreen(
     )
     val scope = rememberCoroutineScope()
 
-    // ✅ NUEVO: cantidad seleccionada
+    // ✅ cantidad seleccionada
     var quantity by remember { mutableStateOf(1) }
 
     Scaffold(
@@ -141,7 +142,7 @@ fun ProductDetailScreen(
                                 cartViewModel.addToCart(
                                     userId = currentUser!!.id,
                                     productId = product.id,
-                                    quantity = quantity    // ✅ usa cantidad seleccionada
+                                    quantity = quantity
                                 )
                                 addedToCart = true
                             },
@@ -169,9 +170,9 @@ fun ProductDetailScreen(
                             orderViewModel.createOrder(
                                 userId = currentUser!!.id,
                                 total = total,
-                                details = "$quantity x ${product.name}"   // ✅ detalle correcto
+                                details = "$quantity x ${product.name}"
                             )
-                            onGoToCart()
+                            onGoToCheckout()   // ✅ AHORA VA AL CHECKOUT
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {

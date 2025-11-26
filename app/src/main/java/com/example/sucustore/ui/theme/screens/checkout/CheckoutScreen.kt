@@ -22,9 +22,16 @@ import androidx.navigation.NavController
 fun CheckoutScreen(navController: NavController) {
 
     // --------- ESTADOS DEL FORMULARIO ---------
+    var cardHolder by remember { mutableStateOf("") }
     var cardNumber by remember { mutableStateOf("") }
     var expiryDate by remember { mutableStateOf("") }
     var cvv by remember { mutableStateOf("") }
+
+    // Errores
+    var cardHolderError by remember { mutableStateOf<String?>(null) }
+    var cardNumberError by remember { mutableStateOf<String?>(null) }
+    var expiryDateError by remember { mutableStateOf<String?>(null) }
+    var cvvError by remember { mutableStateOf<String?>(null) }
 
     // Contexto para usar el Vibrator
     val context = LocalContext.current
@@ -52,15 +59,52 @@ fun CheckoutScreen(navController: NavController) {
             verticalArrangement = Arrangement.Center
         ) {
 
+            // --------- NOMBRE DEL TITULAR ---------
+            OutlinedTextField(
+                value = cardHolder,
+                onValueChange = {
+                    cardHolder = it
+                    cardHolderError = null
+                },
+                label = { Text("Titular de la tarjeta") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                isError = cardHolderError != null
+            )
+            cardHolderError?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // --------- NÚMERO DE TARJETA ---------
             OutlinedTextField(
                 value = cardNumber,
-                onValueChange = { cardNumber = it },
+                onValueChange = {
+                    // Solo dejamos dígitos y espacios
+                    cardNumber = it.filter { ch -> ch.isDigit() || ch == ' ' }
+                    cardNumberError = null
+                },
                 label = { Text("Número de tarjeta") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                isError = cardNumberError != null,
+                placeholder = { Text("XXXX XXXX XXXX XXXX") }
             )
+            cardNumberError?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -68,11 +112,16 @@ fun CheckoutScreen(navController: NavController) {
                 // --------- FECHA DE VENCIMIENTO ---------
                 OutlinedTextField(
                     value = expiryDate,
-                    onValueChange = { expiryDate = it },
+                    onValueChange = {
+                        expiryDate = it
+                        expiryDateError = null
+                    },
                     label = { Text("MM/AA") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    isError = expiryDateError != null,
+                    placeholder = { Text("09/27") }
                 )
 
                 Spacer(modifier = Modifier.width(16.dp))
@@ -80,25 +129,92 @@ fun CheckoutScreen(navController: NavController) {
                 // --------- CVV ---------
                 OutlinedTextField(
                     value = cvv,
-                    onValueChange = { cvv = it },
+                    onValueChange = {
+                        // Solo dígitos
+                        cvv = it.filter { ch -> ch.isDigit() }
+                        cvvError = null
+                    },
                     label = { Text("CVV") },
                     modifier = Modifier.weight(1f),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    isError = cvvError != null,
+                    placeholder = { Text("***") }
+                )
+            }
+            expiryDateError?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+            cvvError?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
                 )
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // --------- BOTÓN PAGAR (con vibración) ---------
+            // --------- BOTÓN PAGAR (con validación + vibración) ---------
             Button(
                 onClick = {
-                    // Aquí iría la lógica real de pago + guardar orden + vaciar carrito
+                    var valido = true
 
-                    // Vibración de éxito tipo "doble pulso"
+                    // Validar titular
+                    cardHolderError = when {
+                        cardHolder.isBlank() ->
+                            "El nombre del titular es obligatorio"
+                        cardHolder.any { it.isDigit() } ->
+                            "El nombre no debe contener números"
+                        cardHolder.length < 5 ->
+                            "El nombre es demasiado corto"
+                        else -> null
+                    }
+                    if (cardHolderError != null) valido = false
+
+                    // Validar número de tarjeta
+                    val digitsNumber = cardNumber.filter { it.isDigit() }
+                    cardNumberError = when {
+                        digitsNumber.isBlank() ->
+                            "El número de tarjeta es obligatorio"
+                        digitsNumber.length != 16 ->
+                            "La tarjeta debe tener 16 dígitos"
+                        else -> null
+                    }
+                    if (cardNumberError != null) valido = false
+
+                    // Validar fecha de vencimiento (MM/AA)
+                    expiryDateError = when {
+                        expiryDate.isBlank() ->
+                            "La fecha de vencimiento es obligatoria"
+                        !Regex("^(0[1-9]|1[0-2])/\\d{2}$").matches(expiryDate) ->
+                            "Formato inválido, usa MM/AA"
+                        else -> null
+                    }
+                    if (expiryDateError != null) valido = false
+
+                    // Validar CVV
+                    cvvError = when {
+                        cvv.isBlank() ->
+                            "El CVV es obligatorio"
+                        cvv.length !in 3..4 ->
+                            "El CVV debe tener 3 o 4 dígitos"
+                        else -> null
+                    }
+                    if (cvvError != null) valido = false
+
+                    if (!valido) return@Button
+
+                    // Si todo está OK → vibración y navegar
                     vibrateSuccess(context)
 
-                    // Volver al catálogo
+                    // Volver al catálogo (o donde quieras)
                     navController.navigate("products") {
                         popUpTo(0)
                     }
