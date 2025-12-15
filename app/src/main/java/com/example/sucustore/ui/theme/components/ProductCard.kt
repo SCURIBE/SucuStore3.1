@@ -10,51 +10,63 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import com.example.sucustore.data.db.entity.Product
+import com.example.sucustore.util.Money
 
 @Composable
 fun ProductCard(
     product: Product,
     onProductClick: (Product) -> Unit,
-    onAddToCart: ((Product) -> Unit)? = null,   // Cliente
-    isAdmin: Boolean = false,                   // Admin: mostrar menú
-    onEditClick: ((Product) -> Unit)? = null,   // Admin
-    onDeleteClick: ((Product) -> Unit)? = null  // Admin
+    onAddToCart: ((Product) -> Unit)? = null,
+    isAdmin: Boolean = false,
+    onEditClick: ((Product) -> Unit)? = null,
+    onDeleteClick: ((Product) -> Unit)? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier
-            .padding(8.dp)
-            .clickable { onProductClick(product) }
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clickable { onProductClick(product) },
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
 
+            // 🖼 Imagen más compacta
             AsyncImage(
                 model = product.imageUri,
                 contentDescription = product.name,
                 modifier = Modifier
-                    .height(180.dp)
                     .fillMaxWidth()
+                    .height(140.dp),
+                contentScale = ContentScale.Crop
             )
 
-            Column(Modifier.padding(12.dp)) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
 
+                // Nombre + menú admin
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        product.name,
-                        fontWeight = FontWeight.Bold,
+                        text = product.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
                     )
 
-                    // SOLO ADMIN: menú ⋮
                     if (isAdmin) {
                         Box {
                             IconButton(onClick = { menuExpanded = true }) {
-                                Icon(Icons.Filled.MoreVert, contentDescription = "Opciones")
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = "Opciones"
+                                )
                             }
                             DropdownMenu(
                                 expanded = menuExpanded,
@@ -79,21 +91,32 @@ fun ProductCard(
                     }
                 }
 
-                Text("\$${product.price}")
+                Spacer(modifier = Modifier.height(4.dp))
 
-                // SOLO CLIENTE → muestra botón
+                // 💰 Precio CLP (PRO)
+                Text(
+                    text = Money.clp(product.price),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Descripción corta
+                Text(
+                    text = product.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 2
+                )
+
+                // Botón solo para cliente
                 if (!isAdmin && onAddToCart != null) {
-                    Spacer(Modifier.height(8.dp))
-
+                    Spacer(modifier = Modifier.height(8.dp))
                     Button(
-                        // 🔥 CAMBIO IMPORTANTE:
-                        // YA NO agregamos directo al carrito
-                        // Ahora abrimos el detalle del producto
                         onClick = { onProductClick(product) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // 🔥 Nuevo texto profesional:
-                        Text("Ver detalle y añadir")
+                        Text("Ver detalle")
                     }
                 }
             }
